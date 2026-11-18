@@ -1,0 +1,18 @@
+[
+  {
+    "global_epoch": 1,
+    "phase": "phase1_frozen",
+    "phase_epoch": 1,
+    "lr_groups": [
+      0.001
+    ],
+    "trainable_params": 3151697,
+    "train_loss": 0.9500969052314758,
+    "val_loss": 6.879956483840942,
+    "val_iou": 0.03288065139456361,
+    "val_dice": 0.06366786201323292,
+    "val_precision": 0.03288082292830675,
+    "val_recall": 0.9998413655255243,
+    "seconds": 2.5
+  }
+]

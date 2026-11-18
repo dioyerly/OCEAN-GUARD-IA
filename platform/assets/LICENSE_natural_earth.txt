@@ -1,0 +1,3 @@
+ne_50m_coastline.geojson: Natural Earth (https://www.naturalearthdata.com/), dominio público.
+Descargado de https://github.com/nvkelso/natural-earth-vector (geojson/ne_50m_coastline.geojson).
+Escala 1:50 millones: adecuada para distancias a la costa de decenas de km, no para navegación.

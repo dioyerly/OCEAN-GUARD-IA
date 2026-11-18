@@ -1,0 +1,40 @@
+{
+  "args": {
+    "root": "C:\\Users\\ANDAMIOS\\Desktop\\OCEAN-GUARD-AI\\oilspill-dataset-original",
+    "out": "C:\\Users\\ANDAMIOS\\Desktop\\OCEAN-GUARD-AI\\unet_oilspill\\runs\\smoke_test",
+    "phase1_epochs": 1,
+    "phase2_epochs": 0,
+    "batch_size": 2,
+    "eval_batch_size": 1,
+    "lr_decoder": 0.001,
+    "lr_encoder": 0.0001,
+    "weight_decay": 0.0001,
+    "seed": 42,
+    "num_workers": 0,
+    "evaluate_test": false,
+    "max_train_batches": 2,
+    "max_val_batches": 2
+  },
+  "torch": "2.15.0+cpu",
+  "torchvision": "0.29.2+cpu",
+  "smp": "0.6.0",
+  "device": "cpu",
+  "weights": {
+    "weights_file": "C:\\Users\\ANDAMIOS\\Desktop\\OCEAN-GUARD-AI\\unet_oilspill\\pretrained\\resnet34-b627a593.pth",
+    "sha256": "b627a593bcbe140c234610266fe4f8ae95ea42fc881d091c9b6052e6b1d0590f",
+    "dropped_fc_keys": [
+      "fc.bias",
+      "fc.weight"
+    ],
+    "expected_encoder_keys": 216,
+    "loaded_keys": 180,
+    "tolerated_missing_num_batches_tracked": 36,
+    "missing_keys": [],
+    "unexpected_keys": []
+  },
+  "params_total": 24436369,
+  "params_encoder": 21284672,
+  "params_decoder": 3151697,
+  "multiple": 32,
+  "crop_size_train": 256
+}

@@ -1,0 +1,16 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+lfs/
+# Checkpoints intermedios/de prueba (pesados; el modelo usado es unet_resnet34_demo_12ep/best.pt)
+unet_oilspill/runs/*/last.pt
+unet_oilspill/runs/smoke_test/*.pt
+unet_oilspill/runs/timing_pilot/*.pt
+unet_oilspill/runs/phase2_timing_pilot/*.pt
+# Imagenes del dataset (se suben aparte; ver LISTA_IMAGENES_DATASET.txt)
+oilspill-dataset-original/IMAGES/
+oilspill-dataset-original/RASTER/
+oilspill-detection-dataset-main/IMAGES/
+oilspill-detection-dataset-main/RASTER/
+oilspill-dataset-original/
