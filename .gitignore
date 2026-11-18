@@ -14,3 +14,6 @@ oilspill-dataset-original/RASTER/
 oilspill-detection-dataset-main/IMAGES/
 oilspill-detection-dataset-main/RASTER/
 oilspill-dataset-original/
+
+# Análisis y base de datos generados por la plataforma (locales, no se versionan)
+platform/data/
