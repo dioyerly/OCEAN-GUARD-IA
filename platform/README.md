@@ -1,4 +1,4 @@
-# OCEAN GUARD AI · Ocean Watch (demostración académica)
+# OCEAN GUARD AI (demostración académica)
 
 Plataforma para analizar imágenes satelitales y señalar **posibles** derrames de petróleo con una U-Net + ResNet34.
 El sistema sugiere, no confirma: toda detección requiere revisión humana.
@@ -24,7 +24,6 @@ informes siguen funcionando; el clima no estará disponible y se podrá simular 
 
 | Sección | Qué ofrece |
 |---|---|
-| Ocean Watch | Escena de mando: mapa a pantalla completa, situación en lenguaje natural, línea de tiempo de eventos y, para el evento elegido, nivel de atención, viento real y costa más cercana |
 | Análisis | Resumen sencillo, comparador antes/después, superficie, confianza, ubicación y mapa; bloque «qué podría verse afectado y qué hacer» (clima real, costa, recomendaciones) |
 | Mapa | Vista satelital con costas, escala, norte y coordenadas; capas conmutables; detalle y simulación del evento |
 | Simulación | **Clima real** (por defecto) o viento manual; origen, trayectoria con marcas horarias, línea a la costa, etapas a 3/6/12 h, reproductor y recomendaciones |

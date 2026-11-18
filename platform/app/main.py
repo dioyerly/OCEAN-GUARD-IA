@@ -239,24 +239,6 @@ def status():
     }
 
 
-@app.get("/api/dashboard")
-def dashboard():
-    counts = storage.dashboard_counts()
-    counts["total_slick_area_km2"] = storage.total_slick_area_km2()
-    return {
-        "counts": counts,
-        "activity": storage.activity_last_days(14),
-        "recent": [_summary(a) for a in storage.list_analyses(6)],
-        "reliability": config.VAL_RELIABILITY,
-        "model": _model_info(),
-        "dataset": {
-            "present": config.DATASET_ROOT.exists(),
-            "tiles": sum(unet_data.EXPECTED_COUNTS.values()),
-            "splits": unet_data.EXPECTED_COUNTS,
-        },
-    }
-
-
 # ---------- Análisis ----------
 
 @app.post("/api/analyze")

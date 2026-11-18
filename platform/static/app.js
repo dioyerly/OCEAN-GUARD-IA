@@ -1,12 +1,11 @@
-/* OCEAN GUARD AI · Ocean Watch (JavaScript sin dependencias, salvo Leaflet para los mapas). */
+/* OCEAN GUARD AI (JavaScript sin dependencias, salvo Leaflet para los mapas). */
 "use strict";
 
 const LEVEL_COLOR = { high: "#ff5a36", medium: "#ff9f1c", low: "#ffd166", none: "#6fe3d3" };
 const LEVEL_LABEL = { high: "Señal clara", medium: "Señal moderada", low: "Señal débil", none: "Sin zonas marcadas" };
-const RISK_COLOR = { low: "#2ee6d0", medium: "#ffc233", high: "#ff5a36" };
 const COMPASS = ["norte", "noreste", "este", "sureste", "sur", "suroeste", "oeste", "noroeste"];
 const state = {
-  maps: {}, mapGroups: null, dashGroup: null, dashLegend: null, analyses: [], selectedId: null, dashSel: null,
+  maps: {}, mapGroups: null, analyses: [], selectedId: null,
   resultMap: null, sim: null, simAnalysis: null, simFrameLayer: null, simGroup: null, simControls: [],
   simIndex: 0, simTimer: null, ctxCache: {}, simImg: null, simProj: null, simGroupMap: null, simPreselect: null,
 };
@@ -30,7 +29,6 @@ function fmtCoord(lat, lon) {
   return `${Math.abs(lat).toFixed(4)}° ${lat >= 0 ? "N" : "S"}, ${Math.abs(lon).toFixed(4)}° ${lon >= 0 ? "E" : "O"}`;
 }
 const compassOf = (deg) => COMPASS[Math.round(((deg % 360) + 360) % 360 / 45) % 8];
-function utcLabel(iso) { return `${iso.slice(8, 10)}/${iso.slice(5, 7)} ${iso.slice(11, 16)}`; }
 function showError(msg) {
   const b = document.getElementById("global-error");
   b.textContent = msg; b.hidden = false;
@@ -80,7 +78,6 @@ function setView(name) {
   document.querySelectorAll(".tabs button").forEach((b) => b.classList.toggle("active", b.dataset.view === name));
   document.querySelectorAll(".view").forEach((v) => v.classList.toggle("active", v.id === `view-${name}`));
   clearError();
-  if (name === "dashboard") loadDashboard();
   if (name === "map") loadMap();
   if (name === "simulate") loadSimulateOptions();
   if (name === "history") loadHistory();
@@ -205,12 +202,11 @@ async function loadAnalysisContext(a) {
   }
 }
 
-// ---------- Ocean Watch (dashboard) ----------
+// ---------- estado del modelo (insignia del menú) ----------
 async function loadStatus() {
   const badge = document.getElementById("model-badge");
   try {
     const s = await api("/api/status");
-    document.getElementById("disclaimer").textContent = s.disclaimer;
     if (s.model_loaded) { badge.className = "badge ok"; badge.textContent = "● Modelo listo"; }
     else {
       badge.className = "badge bad"; badge.textContent = "● Modelo no disponible";
@@ -222,134 +218,12 @@ async function loadStatus() {
   }
 }
 
-function activitySvg(days) {
-  const max = Math.max(1, ...days.map((d) => d.count));
-  const w = 280, h = 80, bw = w / days.length;
-  const bars = days.map((d, i) => {
-    const bh = Math.max(d.count ? 6 : 2, (d.count / max) * (h - 14));
-    return `<rect x="${(i * bw + 2).toFixed(1)}" y="${(h - bh).toFixed(1)}" width="${(bw - 4).toFixed(1)}" height="${bh.toFixed(1)}" rx="3" opacity="${d.count ? 1 : 0.25}"><title>${esc(d.date)}: ${d.count}</title></rect>`;
-  }).join("");
-  return `<svg class="bars" viewBox="0 0 ${w} ${h + 12}" role="img" aria-label="Análisis por día">${bars}
-    <text x="0" y="${h + 10}">${esc(days[0].date.slice(5))}</text><text x="${w}" y="${h + 10}" text-anchor="end">hoy</text></svg>`;
-}
-
 function eventCard(a, extra = "") {
   return `<button class="event" data-id="${esc(a.id)}" onclick="${extra || `openAnalysis('${esc(a.id)}')`}">
     <img src="/api/analyses/${esc(a.id)}/file/overlay" alt="Imagen analizada con zonas marcadas" loading="lazy">
     <div><div class="t">${esc(a.headline || "Análisis")}</div>
       <div class="m">${fmtDate(a.created_at)}${a.acquired ? " · " + esc(a.acquired.split(" · ")[1] || "") : ""}</div>
       <div>${locChip(locState(a))}${levelChip(levelOf(a))}</div></div></button>`;
-}
-function ribbonCard(a) {
-  return `<button class="rcard" data-id="${esc(a.id)}" onclick="selectDashEvent('${esc(a.id)}', true)">
-    <img src="/api/analyses/${esc(a.id)}/file/overlay" alt="Imagen analizada" loading="lazy">
-    <div><div class="t"><i class="lvl" style="background:${LEVEL_COLOR[levelOf(a)]}"></i>${esc(a.filename || a.id)}</div>
-      <div class="m">${fmtDate(a.created_at)}</div><div>${locChip(locState(a))}</div></div></button>`;
-}
-
-async function loadDashboard() {
-  await loadStatus();
-  try {
-    const d = await api("/api/dashboard");
-    const c = d.counts;
-    const list = await api("/api/analyses");
-    state.analyses = list.items;
-    const located = list.items.filter((a) => a.bounds);
-
-    // titular en lenguaje natural
-    const head = document.getElementById("dash-headline"), sub = document.getElementById("dash-subline");
-    if (!list.items.length) {
-      head.textContent = "Aún no hay eventos en observación";
-      sub.textContent = "Analice una imagen para empezar.";
-    } else {
-      const flagged = list.items.filter((a) => a.slick_pct > 0).length;
-      head.textContent = flagged ? `${flagged} ${flagged === 1 ? "evento" : "eventos"} en observación` : "Sin zonas sospechosas por ahora";
-      sub.textContent = `Último análisis: ${fmtDate(c.last_analysis_at)}. ` +
-        (c.total_slick_area_km2 ? `En conjunto, unos ${fmt(c.total_slick_area_km2, 1)} km² marcados.` : "");
-    }
-
-    const kpis = [
-      ["var(--blue)", fmt(c.analyses, 0), "", "Imágenes analizadas", "Cada imagen de satélite que el modelo ha revisado."],
-      ["var(--slick)", fmt(c.with_slick, 0), "", "Con posible derrame", "Imágenes donde el modelo marcó alguna zona. No son confirmaciones."],
-      ["var(--turq)", fmt(c.total_slick_area_km2, 1), " km²", "Superficie marcada", "Suma estimada; solo cuenta imágenes con ubicación y escala."],
-      ["var(--sim)", fmt(c.simulations, 0), "", "Simulaciones", "Estimaciones de hacia dónde podría moverse una mancha."],
-    ];
-    document.getElementById("dash-cards").innerHTML = kpis.map(([col, n, u, l, e]) =>
-      `<div class="kpi" style="--c:${col}"><div class="n">${n}<small>${u}</small></div><div class="l">${esc(l)}</div><div class="e">${esc(e)}</div></div>`).join("");
-    document.getElementById("dash-activity").innerHTML = activitySvg(d.activity);
-
-    const m = d.model, r = d.reliability;
-    document.getElementById("dash-model").innerHTML = m ? `
-      <p><b style="color:var(--turq)">Listo para analizar.</b> En pruebas, de cada 100 puntos que marcó como derrame, unos
-        <b>${Math.round(r.precision * 100)}</b> lo eran, y encontró unos <b>${Math.round(r.recall * 100)}</b> de cada 100 puntos de derrame reales.</p>
-      <details><summary>Detalles técnicos</summary><dl class="kv">
-        <dt>Arquitectura</dt><dd>${esc(m.architecture)}</dd><dt>Entrenamiento</dt><dd>época ${esc(m.epoch)} (fase 1)</dd>
-        <dt>Dice de validación</dt><dd>${fmt(m.val_dice, 4)} (umbral de entrenamiento)</dd><dt>Pesos verificados</dt><dd>${m.weights_sha256_ok ? "sí" : "no"}</dd>
-        <dt>Dispositivo</dt><dd>${esc(m.device)}</dd></dl></details>` : "<p class=\"muted\">Modelo no cargado.</p>";
-
-    drawDashMap(located);
-    const ribbon = document.getElementById("dash-ribbon");
-    ribbon.innerHTML = list.items.slice(0, 12).map(ribbonCard).join("");
-    const first = located.find((a) => a.slick_pct > 0) || located[0];
-    if (first) selectDashEvent(state.dashSel && located.find((a) => a.id === state.dashSel) ? state.dashSel : first.id, false);
-    else document.getElementById("dash-focus").innerHTML = `<div class="focus-title">Nada seleccionado</div>
-      <p class="muted small">Cuando haya un evento con ubicación, aquí verá su nivel de atención, el clima y qué hacer.</p>`;
-  } catch (err) { showError(err.message); }
-}
-
-function drawDashMap(located) {
-  const map = ensureMap("dash-map");
-  if (state.dashGroup) state.dashGroup.clearLayers(); else state.dashGroup = L.layerGroup().addTo(map);
-  const groups = { slick: state.dashGroup, foot: state.dashGroup, marker: state.dashGroup };
-  located.forEach((a) => drawEvent(groups, a, true, (id) => selectDashEvent(id, false)));
-  const empty = document.getElementById("dash-map-empty");
-  if (located.length) {
-    empty.hidden = true;
-    map.fitBounds(located.map((a) => a.bounds).flat(), { padding: [40, 40], maxZoom: 9 });
-    document.getElementById("dash-legend").innerHTML = [
-      ["sw slick", "Posible mancha (estimación del modelo)"], ["sw foot", "Imagen con ubicación real"],
-      ["sw foot-m", "Imagen con ubicación aproximada"], ["pin", "Evento"]].map(([c, t]) => `<span><i class="${c}"></i>${esc(t)}</span>`).join("");
-  } else {
-    empty.hidden = false;
-    empty.innerHTML = "<div><b>Aún no hay eventos con ubicación.</b><p>Analice una imagen con ubicación para verlo aquí.</p></div>";
-  }
-}
-
-async function selectDashEvent(id, fly) {
-  state.dashSel = id;
-  document.querySelectorAll("#dash-ribbon .rcard").forEach((e) => e.classList.toggle("sel", e.dataset.id === id));
-  const a = state.analyses.find((x) => x.id === id);
-  const box = document.getElementById("dash-focus");
-  if (!a || !box) return;
-  if (fly && a.bounds && state.maps["dash-map"]) state.maps["dash-map"].fitBounds(a.bounds, { padding: [60, 60], maxZoom: 11 });
-  const head = `<div class="focus-title">${esc(a.headline)}</div>
-    <div class="focus-sub">${esc(a.filename || a.id)} · ${fmtDate(a.created_at)}</div>
-    <div>${locChip(locState(a))}${levelChip(levelOf(a))}</div>`;
-  if (!a.bounds || !(a.slick_pct > 0)) {
-    box.innerHTML = `${head}<p class="muted small" style="margin-top:.6rem">${!a.bounds
-      ? "Esta imagen no tiene ubicación confirmada: no se consulta clima ni costa. Puede indicar dónde está o ver un escenario de deriva sobre la imagen."
-      : "No hay zona marcada que evaluar."}</p><div class="actions"><button class="primary small-btn" onclick="openAnalysis('${esc(a.id)}')">Ver análisis</button>${a.slick_pct > 0 ? `<button class="secondary small-btn" onclick="simulateFrom('${esc(a.id)}')">Escenario de deriva</button>` : ""}</div>`;
-    return;
-  }
-  box.innerHTML = `${head}<p class="skeleton">Consultando clima y costa…</p>`;
-  try {
-    const c = await getContext(id);
-    if (state.dashSel !== id) return;
-    const st = c.stats, wx = c.weather || {};
-    const wind = st ? `<div class="wxline">${windArrowSvg((st.wind_from_mean_deg + 180) % 360)}<div><b>${fmt(st.wind_mean_ms, 0)} m/s desde el ${compassOf(st.wind_from_mean_deg)}</b>
-      <span>${wx.mode === "historical" ? "Viento real de esa fecha" : wx.mode === "forecast" ? "Pronóstico próximas horas" : "Viento indicado"}${st.wave_max_m != null ? " · olas " + fmt(st.wave_max_m, 1) + " m" : ""}</span></div></div>`
-      : `<p class="muted small">${esc(wx.reason || "Clima no disponible.")}</p>`;
-    const coastTxt = c.coast ? `<p class="small" style="margin:.4rem 0">Costa más cercana: <b>${fmt(c.coast.start.distance_km, 0)} km</b> al ${esc(c.coast.start.direction_es)}.</p>` : "";
-    box.innerHTML = `${head}
-      <div class="gauge">${gaugeSvg(c.risk.level)}</div>
-      <div class="gauge-label" style="color:${RISK_COLOR[c.risk.level]}">Atención: ${esc(c.risk.label)}<small>indicador orientativo</small></div>
-      ${wind}${coastTxt}
-      <ul class="reasons">${c.risk.reasons.slice(0, 3).map((r) => `<li>${esc(r)}</li>`).join("")}</ul>
-    <div class="actions"><button class="primary small-btn" onclick="openAnalysis('${esc(a.id)}')">Qué hacer y por qué</button>
-        <button class="secondary small-btn" onclick="simulateFrom('${esc(a.id)}')">Simular</button></div>`;
-  } catch (err) {
-    if (state.dashSel === id) box.innerHTML = `${head}<div class="notice">No se pudo consultar el contexto: ${esc(err.message)}</div>`;
-  }
 }
 
 // ---------- análisis ----------
@@ -1013,5 +887,6 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("fit-domain").addEventListener("click", () => fitSim("domain"));
   document.getElementById("fit-coast").addEventListener("click", () => fitSim("coast"));
 
+  loadStatus();
   setView("analyze");
 });

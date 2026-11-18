@@ -142,10 +142,7 @@ def test_report_is_self_contained_html():
     assert "no sustituye" in r.text and "Limitaciones" in r.text
 
 
-def test_history_dashboard_and_delete():
-    dash = client.get("/api/dashboard").json()
-    assert dash["counts"]["analyses"] >= 1
-    assert dash["dataset"]["splits"] == {"train": 108, "val": 43, "test": 22}
+def test_history_and_delete():
     items = client.get("/api/analyses").json()["items"]
     target = items[0]["id"]
     assert client.get(f"/api/analyses/{target}").status_code == 200
@@ -191,11 +188,13 @@ def test_manual_location_is_labelled_approximate_and_report_has_map():
     assert "L.map(" in rep and "no está verificada" in rep
 
 
-def test_dashboard_has_activity_and_reliability():
-    d = client.get("/api/dashboard").json()
-    assert len(d["activity"]) == 14
-    assert 0 < d["reliability"]["precision"] < 1
-    assert "total_slick_area_km2" in d["counts"]
+def test_ocean_watch_is_gone_but_status_and_history_remain():
+    assert client.get("/api/dashboard").status_code == 404
+    page = client.get("/").text
+    assert "Ocean Watch" not in page and "view-dashboard" not in page and 'data-view="dashboard"' not in page
+    assert 'data-view="analyze"' in page and 'data-view="map"' in page and 'data-view="simulate"' in page and 'data-view="history"' in page
+    assert "model-badge" in page and client.get("/api/status").json()["model_loaded"] is True
+    assert 0 < config.VAL_RELIABILITY["precision"] < 1
 
 
 # ---------- clima real, costa, riesgo y recomendaciones ----------

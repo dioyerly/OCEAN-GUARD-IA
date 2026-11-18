@@ -120,25 +120,6 @@ def save_simulation(sim_id: str, analysis_id: str, params: dict, result: dict) -
     con.close()
 
 
-def dashboard_counts() -> dict:
-    with connect() as con:
-        total = con.execute("SELECT COUNT(*) FROM analyses").fetchone()[0]
-        with_slick = con.execute(
-            "SELECT COUNT(*) FROM analyses WHERE slick_pct > 0"
-        ).fetchone()[0]
-        sims = con.execute("SELECT COUNT(*) FROM simulations").fetchone()[0]
-        last = con.execute(
-            "SELECT created_at FROM analyses ORDER BY created_at DESC LIMIT 1"
-        ).fetchone()
-    con.close()
-    return {
-        "analyses": total,
-        "with_slick": with_slick,
-        "simulations": sims,
-        "last_analysis_at": last[0] if last else None,
-    }
-
-
 def now_iso() -> str:
     return _now()
 
@@ -157,28 +138,6 @@ def latest_simulation(analysis_id: str) -> dict | None:
     if not path.exists():
         return None
     return json.loads(path.read_text(encoding="utf-8"))
-
-
-def activity_last_days(days: int = 14) -> list[dict]:
-    """Análisis por día (UTC) en los últimos `days` días, incluyendo días sin actividad."""
-    from datetime import timedelta
-    today = datetime.now(timezone.utc).date()
-    with connect() as con:
-        rows = con.execute("SELECT substr(created_at,1,10) AS d, COUNT(*) AS n FROM analyses GROUP BY d").fetchall()
-    con.close()
-    counts = {r["d"]: r["n"] for r in rows}
-    out = []
-    for i in range(days - 1, -1, -1):
-        d = (today - timedelta(days=i)).isoformat()
-        out.append({"date": d, "count": counts.get(d, 0)})
-    return out
-
-
-def total_slick_area_km2() -> float:
-    with connect() as con:
-        v = con.execute("SELECT COALESCE(SUM(slick_area_km2),0) FROM analyses").fetchone()[0]
-    con.close()
-    return round(float(v), 2)
 
 
 def update_location(analysis_id: str, bounds: list, kind: str, lat: float, lon: float,
