@@ -419,6 +419,15 @@ async function loadExamples() {
   } catch (err) { showError(`Ejemplos no disponibles: ${err.message}`); }
 }
 
+// Franja de resumen (semáforo + frase + área) sobre el resultado; la regla del semáforo está en el backend (narrative.TRAFFIC_RULES).
+const TRAFFIC_ICON = { green: "✓", yellow: "!", red: "!" };
+function summaryStrip(s) {
+  const t = s.traffic;
+  if (!t) return "";
+  return `<div class="sum-strip ${esc(t.color)}" role="status"><span class="lamp">${TRAFFIC_ICON[t.color]}</span>
+    <div><b>${esc(t.label)}</b>${t.area_km2 != null ? ` · ${fmt(t.area_km2, 1)} km²` : ""}<br><span class="small">${esc(t.phrase)}</span></div></div>`;
+}
+
 function renderAnalysis(a) {
   const s = a.summary, ref = a.reference, conf = s.confidence, loc = s.location;
   const icon = s.level === "none" ? "✓" : "◉";
@@ -427,10 +436,11 @@ function renderAnalysis(a) {
   const matchTxt = ref ? `<p>Esta imagen es del conjunto de validación: la zona marcada por el modelo coincide en un <b>${Math.round(ref.dice * 100)} %</b>
       con la que dibujó un experto.</p><p class="muted small">Detalle técnico: Dice ${fmt(ref.dice, 4)}, IoU ${fmt(ref.iou, 4)}.</p>` : "";
   const ctxBlock = (a.bounds && a.slick_pct > 0
-    ? `<div class="card ctx-card"><h2>Qué podría verse afectado y qué hacer</h2><div id="ctx-box"><p class="skeleton">Consultando clima y costa reales…</p></div></div>`
+    ? `<details class="card ctx-card fold"><summary><h2>Qué podría verse afectado y qué hacer</h2></summary><div id="ctx-box"><p class="skeleton">Consultando clima y costa reales…</p></div></details>`
     : "") + (a.slick_pct > 0 ? scenarioCard(a) : "");
   const locBlock = !a.bounds ? locationCard() : "";
   return `
+    ${summaryStrip(s)}
     <div class="verdict ${esc(s.level)}">
       <div class="ico">${icon}</div>
       <div>
@@ -454,7 +464,7 @@ function renderAnalysis(a) {
       <div class="facts">
         <div class="fact"><div class="n">${area}</div><div class="l">Superficie estimada</div><div class="e">${areaExtra}</div></div>
         <div class="fact"><div class="n">${fmt(a.n_components, 0)}</div><div class="l">Zonas detectadas</div><div class="e">Manchas separadas que el modelo marcó.</div></div>
-        <div class="fact wide"><div class="n">Confianza: ${esc(conf.label)}</div><div class="l">Qué tan fiable es este resultado</div><div class="e">${esc(conf.text)}</div></div>
+        <div class="fact wide"><div class="n">Confianza: ${esc(conf.label)}</div><div class="l">Qué tan fiable es este resultado</div><details><summary>Cómo se calcula</summary><div class="e">${esc(conf.text)}</div></details></div>
         <div class="fact wide"><div class="n" style="font-size:1.05rem">${locChip(loc.state)}</div><div class="e">${esc(loc.text)}</div></div>
       </div>
     </div>
@@ -653,6 +663,7 @@ async function onSimEventChange() {
   document.getElementById("sim-controls").hidden = true;
   document.getElementById("sim-fit").hidden = true;
   document.getElementById("sim-context").innerHTML = "";
+  document.getElementById("sim-simple").innerHTML = "";
   if (!a) return;
   state.simAnalysis = a;
   state.simImg = a.bounds ? null : { W: a.width, H: a.height };
@@ -812,7 +823,27 @@ function renderSim(sim) {
       <dt>Difusión</dt><dd>${fmt(as.diffusivity_m2_s, 0)} m²/s</dd><dt>Degradación</dt><dd>${fmt(as.decay_per_hour * 100, 0)} % por hora</dd>
       <dt>No incluye</dt><dd>${esc(as.physics)}</dd><dt>Dominio</dt><dd>${esc(as.domain)}</dd></dl></details>`;
   document.getElementById("sim-context").innerHTML = sim.context
-    ? `<div class="card ctx-card"><h2>Qué podría verse afectado y qué hacer</h2>${contextHtml(sim.context)}</div>` : "";
+    ? `<details class="card ctx-card fold"><summary><h2>Qué podría verse afectado y qué hacer</h2></summary>${contextHtml(sim.context)}</details>` : "";
+  document.getElementById("sim-simple").innerHTML = simpleSimBlock(sim);
+}
+
+// Texto simple de la simulación (cálculos en backend: app/simple.py). Sin porcentajes de crecimiento.
+function simpleSimBlock(sim) {
+  const s = sim.simple;
+  if (!s) return "";
+  const rows = s.stages.map((r) => `<tr><td>${r.hour} horas</td><td>${fmt(r.displacement_km, 1)} km</td></tr>`).join("");
+  const c = s.coast;
+  const coast = !c ? "Sin ubicación confirmada no se puede evaluar la costa."
+    : `La costa más cercana está a ${fmt(c.distance_km, 0)} km hacia el ${esc(c.direction_es)}. ` +
+      (c.reaches ? `<b>La trayectoria la alcanza en unas ${fmt(c.hours, 0)} horas.</b>` : `En las ${s.horizon_hours} horas simuladas no la alcanza.`);
+  const rg = s.affected_range_km2;
+  return `<div class="card story"><h3>En palabras simples</h3>
+    <p>La mancha se mueve <b>${esc(s.direction_text)}</b>, a ${esc(s.speed_text)}.</p>
+    <table class="stage-table"><thead><tr><th>Pasado este tiempo</th><th>Se desplazó</th></tr></thead><tbody>${rows}</tbody></table>
+    <p>${coast}</p>
+    <p><span class="chip ${esc(s.severity.level)}">${esc(s.severity.label.toUpperCase())}</span> ${esc(s.severity.why)}</p>
+    ${rg ? `<p>Zona que podría verse afectada (estimación aproximada): entre ${fmt(rg[0], 1)} y ${fmt(rg[1], 1)} km².</p>` : ""}
+    <p class="small muted">Es una simulación simple, sin oleaje ni corrientes marinas.</p></div>`;
 }
 
 async function runSimulation(event) {
@@ -919,83 +950,6 @@ function wirePlaceSearch(root) {
   q.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); run(); } });
 }
 
-// ---------- marcar la mancha a mano ----------
-const mark = { img: null, nw: 0, nh: 0, cw: 0, ch: 0, strokes: [], erase: false, drawing: false, cur: null };
-function markCtx(id) { const c = document.getElementById(id); return c && c.getContext ? c.getContext("2d") : null; }
-function paintSegment(ctx, s, k, i, color) {
-  ctx.save();
-  ctx.globalCompositeOperation = s.erase ? "destination-out" : "source-over";
-  ctx.strokeStyle = ctx.fillStyle = s.erase ? "#000" : color;
-  ctx.lineCap = "round"; ctx.lineJoin = "round"; ctx.lineWidth = s.r * 2 * k;
-  ctx.beginPath();
-  if (i === 0 || s.pts.length === 1) {
-    ctx.arc(s.pts[0][0] * k, s.pts[0][1] * k, s.r * k, 0, Math.PI * 2); ctx.fill();
-  } else {
-    ctx.moveTo(s.pts[i - 1][0] * k, s.pts[i - 1][1] * k); ctx.lineTo(s.pts[i][0] * k, s.pts[i][1] * k); ctx.stroke();
-  }
-  ctx.restore();
-}
-function paintStroke(ctx, s, k, color) { for (let i = 0; i < s.pts.length; i++) paintSegment(ctx, s, k, i, color); }
-function markRedraw() {
-  const ctx = markCtx("mk-draw");
-  if (!ctx) return;
-  ctx.clearRect(0, 0, mark.cw, mark.ch);
-  mark.strokes.forEach((s) => paintStroke(ctx, s, mark.cw / mark.nw, "rgba(255,106,61,0.7)"));
-}
-function initMarkTool(file) {
-  const box = document.getElementById("mark-box");
-  mark.strokes = []; mark.nw = 0;
-  if (!file) { box.hidden = true; return; }
-  const url = URL.createObjectURL(file);
-  const img = new Image();
-  img.onload = () => {
-    mark.img = img; mark.nw = img.naturalWidth; mark.nh = img.naturalHeight;
-    mark.cw = Math.min(680, mark.nw); mark.ch = Math.round((mark.nh * mark.cw) / mark.nw);
-    ["mk-img", "mk-draw"].forEach((id) => { const c = document.getElementById(id); c.width = mark.cw; c.height = mark.ch; });
-    const ctx = markCtx("mk-img");
-    if (ctx) ctx.drawImage(img, 0, 0, mark.cw, mark.ch);
-    box.hidden = false; markRedraw(); URL.revokeObjectURL(url);
-  };
-  img.onerror = () => { box.hidden = true; };  // p. ej. TIFF: el navegador no lo muestra; se analiza igual sin marcar
-  img.src = url;
-}
-function exportMask() {
-  return new Promise((resolve) => {
-    if (!mark.nw || !mark.strokes.some((s) => !s.erase)) { resolve(null); return; }
-    const layer = document.createElement("canvas"); layer.width = mark.nw; layer.height = mark.nh;
-    const lctx = layer.getContext && layer.getContext("2d");
-    if (!lctx) { resolve(null); return; }
-    mark.strokes.forEach((s) => paintStroke(lctx, s, 1, "#ffffff"));
-    const out = document.createElement("canvas"); out.width = mark.nw; out.height = mark.nh;
-    const octx = out.getContext("2d");
-    octx.fillStyle = "#000"; octx.fillRect(0, 0, mark.nw, mark.nh); octx.drawImage(layer, 0, 0);
-    out.toBlob((b) => resolve(b), "image/png");
-  });
-}
-function wireMarkTool() {
-  const dc = document.getElementById("mk-draw"), brush = document.getElementById("brush");
-  const paintBtn = document.getElementById("mk-paint"), eraseBtn = document.getElementById("mk-erase");
-  const pos = (e) => { const r = dc.getBoundingClientRect(); return [((e.clientX - r.left) / r.width) * mark.nw, ((e.clientY - r.top) / r.height) * mark.nh]; };
-  dc.addEventListener("pointerdown", (e) => {
-    if (!mark.nw) return;
-    if (dc.setPointerCapture) { try { dc.setPointerCapture(e.pointerId); } catch (_) { /* sin captura */ } }
-    mark.drawing = true;
-    mark.cur = { erase: mark.erase, r: Number(brush.value) * (mark.nw / mark.cw), pts: [pos(e)] };
-    mark.strokes.push(mark.cur);
-    const ctx = markCtx("mk-draw"); if (ctx) paintSegment(ctx, mark.cur, mark.cw / mark.nw, 0, "rgba(255,106,61,0.7)");
-  });
-  dc.addEventListener("pointermove", (e) => {
-    if (!mark.drawing) return;
-    mark.cur.pts.push(pos(e));
-    const ctx = markCtx("mk-draw"); if (ctx) paintSegment(ctx, mark.cur, mark.cw / mark.nw, mark.cur.pts.length - 1, "rgba(255,106,61,0.7)");
-  });
-  ["pointerup", "pointerleave", "pointercancel"].forEach((ev) => dc.addEventListener(ev, () => { mark.drawing = false; }));
-  paintBtn.addEventListener("click", () => { mark.erase = false; paintBtn.classList.add("on"); eraseBtn.classList.remove("on"); });
-  eraseBtn.addEventListener("click", () => { mark.erase = true; eraseBtn.classList.add("on"); paintBtn.classList.remove("on"); });
-  document.getElementById("mk-clear").addEventListener("click", () => { mark.strokes = []; markRedraw(); });
-  document.getElementById("upload-file").addEventListener("change", (e) => initMarkTool(e.target.files[0]));
-}
-
 // ---------- ubicación posterior y escenarios por dirección del viento ----------
 function locationCard() {
   return `<div class="card loc-card" id="loc-card"><h3>Indicar dónde está</h3>
@@ -1025,14 +979,14 @@ async function submitLocation(a) {
 }
 
 function scenarioCard(a) {
-  return `<div class="card ctx-card" id="scen-card"><h2>¿Hacia dónde podría ir según el viento?</h2>
+  return `<details class="card ctx-card fold" id="scen-card"><summary><h2>¿Hacia dónde podría ir según el viento?</h2></summary>
     <p class="muted small">Para cada dirección posible del viento, hacia dónde se desplazaría la mancha. ${a.bounds
       ? "Como hay ubicación, también se evalúa si se acercaría a la costa."
       : "Sin ubicación no se consulta el clima real: elija usted la fuerza del viento."}</p>
     <div class="row"><label>Fuerza del viento <select id="scen-wind"><option value="3">Suave (≈ 11 km/h)</option><option value="8" selected>Moderado (≈ 29 km/h)</option>
       <option value="15">Fuerte (≈ 54 km/h)</option><option value="22">Muy fuerte (≈ 79 km/h)</option></select></label>
       <label>Horas <select id="scen-hours"><option value="6">6 horas</option><option value="12" selected>12 horas</option><option value="24">24 horas</option><option value="48">48 horas</option></select></label></div>
-    <div id="scen-body"><p class="skeleton">Calculando…</p></div></div>`;
+    <div id="scen-body"><p class="skeleton">Calculando…</p></div></details>`;
 }
 async function loadScenarios(a) {
   const body = document.getElementById("scen-body");
@@ -1076,8 +1030,6 @@ document.addEventListener("DOMContentLoaded", () => {
       fd.append("lon", f.elements.lon.value);
     }
     if (f.elements.scene_km.value) fd.append("scene_km", f.elements.scene_km.value);
-    const maskBlob = await exportMask();
-    if (maskBlob) fd.append("mask", maskBlob, "mask.png");
     const btn = f.querySelector("button[type=submit]");
     btn.disabled = true;
     setStatus("Analizando la imagen… (la primera vez puede tardar unos segundos)");
@@ -1099,7 +1051,6 @@ document.addEventListener("DOMContentLoaded", () => {
     finally { btn.disabled = false; setStatus(""); }
   });
 
-  wireMarkTool();
   wirePlaceSearch(document.getElementById("form-upload"));
   const form = document.getElementById("form-sim");
   form.addEventListener("submit", runSimulation);

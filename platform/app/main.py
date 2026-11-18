@@ -23,6 +23,7 @@ from . import geo
 from . import inference
 from . import narrative
 from . import scene_meta
+from . import simple
 from . import report as R
 from . import simulation as S
 from . import storage
@@ -109,6 +110,8 @@ def _summary(a: dict) -> dict:
     d = narrative.describe(a)
     out.update({
         "level": d["level"],
+        "traffic": d["traffic"]["color"],
+        "traffic_label": d["traffic"]["label"],
         "headline": d["headline"],
         "location_state": d["location"]["state"],
         "acquired": d["acquired"],
@@ -160,17 +163,12 @@ def _open_image(raw: bytes) -> Image.Image:
 
 def _run_pipeline(rgb: np.ndarray, *, source: str, filename: str | None, bounds, location_kind: str,
                   reference_mask: np.ndarray | None = None, extra_result: dict | None = None,
-                  pixel_m: float | None = None, scale_assumed: bool = False,
-                  manual_mask: np.ndarray | None = None) -> dict:
-    if manual_mask is not None:
-        mask = manual_mask.astype(bool)
-        prob = mask.astype(np.float32)
-    else:
-        seg = inference.get_segmenter()
-        if seg is None:
-            raise HTTPException(503, f"El modelo no está disponible: {inference.load_error()}")
-        prob = seg.predict_prob(rgb)
-        mask = A.remove_small_components(prob > config.DEFAULT_THRESHOLD, config.MIN_COMPONENT_PX)
+                  pixel_m: float | None = None, scale_assumed: bool = False) -> dict:
+    seg = inference.get_segmenter()
+    if seg is None:
+        raise HTTPException(503, f"El modelo no está disponible: {inference.load_error()}")
+    prob = seg.predict_prob(rgb)
+    mask = A.remove_small_components(prob > config.DEFAULT_THRESHOLD, config.MIN_COMPONENT_PX)
     H, W = mask.shape
     if bounds:
         pixel_km2 = geo.pixel_area_km2(bounds, W, H)
@@ -178,12 +176,7 @@ def _run_pipeline(rgb: np.ndarray, *, source: str, filename: str | None, bounds,
     else:
         pixel_km2 = (pixel_m / 1000.0) ** 2 if pixel_m else None
     result = A.summarize(mask, prob, pixel_km2)
-    if manual_mask is not None:
-        result["manual_mask"] = True
-        result["mean_prob_slick"] = None
-        result["warnings"] = [{"code": "manual", "text": "La zona fue marcada por usted; el sistema no verificó que sea petróleo."}]
-    else:
-        result["warnings"] = A.input_warnings(rgb) if source.startswith("carga del usuario") else []
+    result["warnings"] = A.input_warnings(rgb) if source.startswith("carga del usuario") else []
     result["scale_m_per_px"] = round(pixel_m, 3) if pixel_m else None
     result["scale_assumed"] = bool(scale_assumed)
     if extra_result:
@@ -273,23 +266,14 @@ async def analyze_upload(
     lon: float | None = Form(None),
     pixel_m: float | None = Form(None),
     scene_km: float | None = Form(None),
-    mask: UploadFile | None = File(None),
 ):
     raw = await _read_upload(file)
     im = _open_image(raw)
     rgb = A.to_rgb_uint8(im)
     H, W = rgb.shape[:2]
 
-    manual = None
-    if mask is not None and mask.filename:
-        mraw = await mask.read(config.MAX_UPLOAD_BYTES + 1)
-        try:
-            mim = Image.open(io.BytesIO(mraw)).convert("L").resize((W, H), Image.NEAREST)
-        except Exception:
-            raise HTTPException(422, "No se pudo leer la zona marcada.")
-        manual = np.asarray(mim) > 127
-        if not manual.any():
-            raise HTTPException(400, "La zona marcada está vacía: pinte sobre la imagen la mancha que quiere analizar.")
+    if any(w["code"] == "color" for w in A.input_warnings(rgb)):
+        raise HTTPException(422, config.MSG_NOT_RADAR)
 
     georef = None
     try:
@@ -329,9 +313,9 @@ async def analyze_upload(
             location_kind = "no indicada"
 
     return _run_pipeline(
-        rgb, source="carga del usuario (zona marcada a mano)" if manual is not None else "carga del usuario",
+        rgb, source="carga del usuario",
         filename=file.filename, bounds=bounds, location_kind=location_kind,
-        pixel_m=pm, scale_assumed=scale_assumed, manual_mask=manual,
+        pixel_m=pm, scale_assumed=scale_assumed,
     )
 
 
@@ -510,6 +494,7 @@ def simulate(analysis_id: str, req: SimulationRequest):
     result["weather_mode"] = wx.get("mode")
     result["unlocated"] = not located
     result["image_size"] = {"width": W, "height": H}
+    result["simple"] = simple.explain_simulation(result, result["context"], located)
     sim_id = uuid.uuid4().hex[:12]
     result["simulation_id"] = sim_id
     result["analysis_id"] = analysis_id

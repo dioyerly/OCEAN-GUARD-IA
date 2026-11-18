@@ -65,25 +65,25 @@
       <div class="strip" id="dash-cards"></div>
 
       <div class="trio">
-        <div class="card">
-          <h3>Actividad reciente</h3>
+        <details class="card fold">
+          <summary>Actividad reciente</summary>
           <p class="muted small">Imágenes analizadas por día durante las últimas dos semanas.</p>
           <div id="dash-activity"></div>
-        </div>
-        <div class="card">
-          <h3>¿Qué es real y qué es simulado?</h3>
+        </details>
+        <details class="card fold">
+          <summary>¿Qué es real y qué es simulado?</summary>
           <ul class="truth">
             <li><i class="dot real"></i><div><b>Imagen, ubicación, clima y costa</b><span>Datos reales: el archivo analizado, Open-Meteo (clima) y Natural Earth (costa). Sin ubicación en el archivo, no se coloca en el mapa.</span></div></li>
             <li><i class="dot est"></i><div><b>Zona marcada</b><span>Estimación del modelo. No confirma que sea petróleo.</span></div></li>
             <li><i class="dot sim"></i><div><b>Desplazamiento</b><span>Simulación ilustrativa con supuestos sencillos. No es una predicción.</span></div></li>
           </ul>
-        </div>
-        <div class="card">
-          <h3>Estado del modelo</h3>
+        </details>
+        <details class="card fold">
+          <summary>Estado del modelo</summary>
           <div id="dash-model"></div>
-        </div>
+        </details>
       </div>
-      <p class="disclaimer" id="disclaimer"></p>
+      <details class="fold-plain"><summary>Aviso importante</summary><p class="disclaimer" id="disclaimer"></p></details>
     </section>
 
     <!-- ANÁLISIS -->
@@ -93,21 +93,10 @@
       <div class="inputs">
         <form id="form-upload" class="card">
           <h3>Cargar su propia imagen</h3>
-          <p class="muted small">Sirve una imagen de radar satelital (la detección es automática) o cualquier otra: foto aérea, de dron, de un barco o una captura. En ese caso <b>pinte usted la mancha</b> y el sistema calculará superficie, hacia dónde podría ir y qué hacer.</p>
+          <p class="muted small">Sirve una imagen de radar satelital (Sentinel-1, en blanco y negro): la detección es automática.</p>
           <label>Archivo (PNG, JPG o TIFF, máx. 25 MB)
             <input type="file" name="file" id="upload-file" accept=".png,.jpg,.jpeg,.tif,.tiff" required>
           </label>
-          <div id="mark-box" hidden>
-            <div class="mark-tools">
-              <span class="muted small">Pincel</span>
-              <input type="range" id="brush" min="4" max="70" value="20" aria-label="Tamaño del pincel">
-              <button type="button" id="mk-paint" class="secondary small-btn on">Pintar</button>
-              <button type="button" id="mk-erase" class="secondary small-btn">Borrar</button>
-              <button type="button" id="mk-clear" class="secondary small-btn">Limpiar</button>
-            </div>
-            <div class="mark-stage"><canvas id="mk-img"></canvas><canvas id="mk-draw"></canvas></div>
-            <p class="muted small" id="mark-note">Pinte sobre la imagen la zona que quiere analizar. Si es de radar y no pinta nada, el modelo la detecta solo.</p>
-          </div>
           <details open>
             <summary>¿Dónde está y qué tan grande es? (opcional)</summary>
             <p class="muted small">Sin ubicación igualmente verá un escenario de deriva sobre la imagen. Con ubicación se consulta el clima real y la costa. Si la foto trae GPS, se usa solo.</p>
@@ -211,6 +200,7 @@
             </div>
             <div class="player-time"><span id="sim-hour">0</span> h</div>
           </div>
+          <div id="sim-simple"></div>
           <div id="sim-summary" class="card story"><p class="muted">Elija un evento con ubicación conocida y pulse «Simular desplazamiento».</p></div>
           <div id="sim-context"></div>
         </div>

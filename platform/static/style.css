@@ -286,4 +286,12 @@ details { margin: .6rem 0; } summary { cursor: pointer; color: var(--turq); font
 .legend-bar span { display: inline-flex; align-items: center; gap: .45rem; }
 .dash-detail { background: #071f35; border: 1px solid #2b6f96aa; border-radius: 18px; padding: 1rem 1.1rem; max-height: 700px; overflow-y: auto; }
 .dash-center .stage .leaflet-control-layers { margin-top: 10px; }
+/* Franja de resumen y plegables (aditivo: solo variables y clases existentes) */
+.sum-strip { display: flex; gap: .8rem; align-items: center; padding: .7rem 1rem; border-radius: 14px; border: 1px solid var(--line); background: var(--panel); margin: 1rem 0 0; }
+.sum-strip .lamp { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; color: #04121f; flex: none; }
+.sum-strip.green { border-color: var(--ok); } .sum-strip.green .lamp { background: var(--ok); }
+.sum-strip.yellow { border-color: var(--warn); } .sum-strip.yellow .lamp { background: var(--warn); }
+.sum-strip.red { border-color: var(--err); } .sum-strip.red .lamp { background: var(--err); }
+details.fold > summary { color: var(--fg); font-weight: 650; } details.fold > summary h2, details.fold > summary h3 { display: inline; font-size: 1rem; }
+details.fold-plain { margin: .6rem 0; }
 @media (max-width: 1150px) { .dash-grid { grid-template-columns: 1fr; } .dash-ribbon { flex-direction: row; max-height: none; overflow-x: auto; } .dash-ribbon .rcard { flex: 0 0 230px; } .dash-center .stage { height: 460px; } .dash-detail { max-height: none; } }

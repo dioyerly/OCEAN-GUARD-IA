@@ -268,22 +268,19 @@ def test_context_requires_location():
     assert client.get(f"/api/analyses/{r.json()['id']}/context").status_code == 400
 
 
-def test_non_radar_image_is_flagged_and_not_given_context():
+def test_non_radar_image_is_rejected_with_a_friendly_message():
     buf = io.BytesIO()
     Image.new("RGB", (800, 600), (30, 120, 200)).save(buf, format="PNG")  # imagen a color, como una captura
     r = client.post("/api/analyze", files={"file": ("captura.png", buf.getvalue(), "image/png")},
                     data={"lat": "19.4", "lon": "-92.1"})
-    a = r.json()
-    assert any("tiene color" in w for w in a["summary"]["warnings"])
-    assert a["summary"]["confidence"]["label"] == "No evaluable"
-    ctx = client.get(f"/api/analyses/{a['id']}/context")
-    assert ctx.status_code == 400 and "no parece de radar" in ctx.json()["detail"]
+    assert r.status_code == 422
+    assert r.json()["detail"] == config.MSG_NOT_RADAR and "Sube una imagen de radar" in r.json()["detail"]
     gray = client.post("/api/analyze", files={"file": ("g.png", _val_png_bytes(6), "image/png")}).json()
     assert gray["summary"]["warnings"] == []  # las imágenes del dataset no generan avisos
 
 
 
-# ---------- imágenes propias: sin ubicación, marca manual, GPS, escala ----------
+# ---------- imágenes propias: sin ubicación, GPS, escala ----------
 import json as _json  # noqa: E402
 import numpy as _np  # noqa: E402
 
@@ -325,32 +322,6 @@ def test_scale_assumed_is_declared_when_not_given():
     assert a["result"]["scale_assumed"] is True
     if a["slick_area_km2"] is not None:
         assert "escala supuesta" in a["summary"]["text"]
-
-
-def test_hand_marked_zone_works_on_a_color_photo_and_gets_context():
-    photo = _np.zeros((300, 400, 3), dtype=_np.uint8)
-    photo[..., 0], photo[..., 1], photo[..., 2] = 20, 90, 160  # foto a color
-    mark = _np.zeros((300, 400), dtype=_np.uint8)
-    mark[100:160, 120:260] = 255
-    r = client.post(
-        "/api/analyze",
-        files={"file": ("foto.png", _png(photo), "image/png"), "mask": ("mask.png", _png(mark), "image/png")},
-        data={"lat": "19.45", "lon": "-92.0", "scene_km": "2"},
-    )
-    assert r.status_code == 200, r.text
-    a = r.json()
-    assert a["source"] == "carga del usuario (zona marcada a mano)"
-    assert a["summary"]["headline"] == "Zona marcada por usted"
-    assert a["summary"]["confidence"]["label"] == "No aplica"
-    assert all("tiene color" not in w for w in a["summary"]["warnings"])
-    expected_pct = 100 * (60 * 140) / (300 * 400)
-    assert a["slick_pct"] == pytest.approx(expected_pct, rel=1e-3)
-    assert a["slick_area_km2"] == pytest.approx(60 * 140 * (2000 / 400 / 1000) ** 2, rel=0.05)
-    ctx_r = client.get(f"/api/analyses/{a['id']}/context")
-    assert ctx_r.status_code in (200,)  # la marca manual no se bloquea por el color
-    empty = client.post("/api/analyze", files={"file": ("f.png", _png(photo), "image/png"),
-                                               "mask": ("m.png", _png(_np.zeros((300, 400), _np.uint8)), "image/png")})
-    assert empty.status_code == 400 and "marcada está vacía" in empty.json()["detail"]
 
 
 def test_gps_in_photo_exif_is_used_as_location():
@@ -400,3 +371,57 @@ def test_geocode_validates_and_degrades_gracefully():
         assert "conexión" in r.json()["detail"]
         pytest.skip("sin conexión al servicio de geocodificación")
     assert r.status_code == 200 and isinstance(r.json()["items"], list)
+
+
+# ---------- interfaz simple: semáforo, gravedad, dirección y campos nuevos ----------
+from app import narrative, simple  # noqa: E402
+
+
+def test_traffic_light_rule():
+    red = narrative.TRAFFIC_RULES
+    big = [{"area_px": red["red_min_component_px"]}]
+    assert narrative.traffic_light({"slick_px": 0, "components": []}) == "green"
+    assert narrative.traffic_light({"slick_px": 500, "components": [{"area_px": 500}], "mean_prob_slick": 0.99}) == "yellow"
+    assert narrative.traffic_light({"slick_px": 5000, "components": big, "mean_prob_slick": 0.96}) == "yellow"
+    assert narrative.traffic_light({"slick_px": 5000, "components": big, "mean_prob_slick": red["red_mean_prob"]}) == "red"
+
+
+def test_severity_rule_low_medium_high():
+    low = simple.severity(False, None, 10, 3.0)
+    assert low["level"] == "low" and low["label"] == "baja"
+    med = simple.severity(True, 40, 10, 3.0)           # llega a la costa tarde: 1 punto
+    assert med["level"] == "medium"
+    med2 = simple.severity(False, None, 80, 4.0)       # solo crece mucho
+    assert med2["level"] == "medium"
+    high = simple.severity(True, 18, 10, 14.0)         # costa en 18 h + viento fuerte
+    assert high["level"] == "high"
+    assert "llega a la costa en 18 horas" in high["why"] and "viento es fuerte" in high["why"]
+    assert high["why"].startswith("Gravedad alta porque")
+
+
+def test_direction_text_in_spanish():
+    assert simple.direction_text(45) == "hacia el noreste"
+    assert simple.direction_text(270) == "hacia el oeste"
+    assert simple.direction_text(180) == "hacia el sur"
+    assert simple.direction_text(None) == "sin desplazamiento apreciable"
+
+
+def test_api_response_includes_new_simple_fields():
+    a = _first_slick_example()
+    s = a["summary"]
+    assert s["traffic"]["color"] in ("yellow", "red")
+    assert s["traffic"]["label"] in narrative.TRAFFIC_LABEL.values()
+    assert s["traffic"]["area_km2"] is not None and s["traffic"]["where"]
+    assert "no una confirmación" in s["traffic"]["phrase"]
+    assert {"threshold", "reliability", "disclaimer"} <= set(s["technical"])
+    sim = client.post(f"/api/analyses/{a['id']}/simulate",
+                      json={"mode": "manual", "wind_speed_ms": 8, "wind_from_deg": 90, "hours": 48})
+    assert sim.status_code == 200, sim.text
+    simple_ = sim.json()["simple"]
+    assert simple_["direction_text"] == "hacia el oeste"
+    assert [x["hour"] for x in simple_["stages"]] == [6, 12, 24, 48]
+    assert all(x["displacement_km"] >= 0 and "area_growth_pct" not in x for x in simple_["stages"])  # sin porcentajes
+    lo, hi = simple_["affected_range_km2"]
+    assert 0 <= lo <= hi
+    assert simple_["severity"]["level"] in ("low", "medium", "high") and simple_["severity"]["why"]
+    assert simple_["coast"] is not None and simple_["coast"]["distance_km"] >= 0
