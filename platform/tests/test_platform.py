@@ -468,3 +468,34 @@ def test_confidence_text_mentions_false_alarm_rate():
     a = client.post(f"/api/examples/{client.get('/api/examples').json()['groups']['con'][0]['sample_id']}/analyze").json()
     txt = a["summary"]["confidence"]["text"]
     assert "1 de cada 4 o 5" in txt and "unas 87" not in txt and "No se midieron" not in txt
+
+
+# ---------- confianza en porcentaje (puntaje del modelo) ----------
+def test_confidence_percent_with_and_without_spill():
+    assert narrative.model_score_percent({"slick_px": 100, "mean_prob_slick": 0.912}) == 91
+    assert narrative.model_score_percent({"slick_px": 0, "max_prob": 0.13}) == 87      # 1 - máximo
+    assert narrative.model_score_percent({"slick_px": 0, "max_prob": 0.0}) == 100
+    assert narrative.model_score_percent({"slick_px": 5, "mean_prob_slick": 1.0}) == 100
+    assert narrative.model_score_percent({"slick_px": 0}) is None                      # análisis antiguo sin dato
+    c = narrative.confidence({"slick_px": 0, "max_prob": 0.40, "components": []})
+    assert c["title"] == "Confianza de que no hay derrame: 60 %" and c["weak_signal"] is True
+    assert narrative.confidence({"slick_px": 0, "max_prob": 0.20, "components": []})["weak_signal"] is False
+    assert narrative.confidence({"slick_px": 0, "max_prob": 0.99, "components": []})["weak_signal"] is False  # sobre el umbral: no es señal débil
+
+
+def test_api_confidence_card_for_example_with_and_without_spill():
+    g = client.get("/api/examples").json()["groups"]
+    con = client.post(f"/api/examples/{g['con'][0]['sample_id']}/analyze").json()
+    cc = con["summary"]["confidence"]
+    assert 0 <= cc["percent"] <= 100 and cc["title"] == f"Confianza: {cc['percent']} %"
+    assert con["summary"]["confidence_percent"] == cc["percent"]
+    assert cc["text"] == narrative.FALSE_ALARM_LINE
+    assert not any(w in cc["title"] + cc["text"] for w in ("Alta", "Media", "Baja"))
+    sin = client.post(f"/api/examples/{g['sin'][0]['sample_id']}/analyze").json()
+    cs = sin["summary"]["confidence"]
+    assert 0 <= cs["percent"] <= 100 and cs["title"].startswith("Confianza de que no hay derrame: ")
+    assert sin["result"]["max_prob"] is not None
+    assert cs["percent"] == round((1 - sin["result"]["max_prob"]) * 100) or abs(cs["percent"] - (1 - sin["result"]["max_prob"]) * 100) < 1
+    assert not any(w in cs["title"] + cs["text"] for w in ("Alta", "Media", "Baja"))
+    rep_html = client.get(f"/api/analyses/{sin['id']}/report").text
+    assert "Puntaje de confianza del modelo" in rep_html and f"{cs['percent']} %" in rep_html

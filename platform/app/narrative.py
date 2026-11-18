@@ -5,6 +5,8 @@ Nada aquí inventa datos: todo se deriva de la máscara predicha, de la georrefe
 """
 from __future__ import annotations
 
+import math
+
 from . import config
 from .geo import compass_es
 
@@ -59,25 +61,53 @@ def surface_phrase(pct: float) -> str:
     return f"aproximadamente el {_num(pct, 1)} % de la superficie analizada"
 
 
+FALSE_ALARM_LINE = ("En pruebas con imágenes de otras regiones sin derrame, el sistema dio falsa alarma "
+                    "en 1 de cada 4 o 5. Revise siempre el resultado.")
+WEAK_SIGNAL_MIN = 0.30  # probabilidad máxima por encima de la cual (y bajo el umbral) se avisa de "señales débiles"
+
+
+def model_score_percent(result: dict) -> int | None:
+    """Puntaje del modelo en % entero (0-100). Es el puntaje del modelo, NO una probabilidad calibrada.
+
+    Con derrame: probabilidad media sobre los píxeles de las zonas marcadas.
+    Sin derrame: 1 - probabilidad máxima del modelo en la imagen. None si falta el dato (análisis antiguos).
+    """
+    if result.get("slick_px", 0) > 0:
+        p = result.get("mean_prob_slick")
+    else:
+        mx = result.get("max_prob")
+        p = None if mx is None else 1.0 - mx
+    if p is None or not math.isfinite(float(p)):  # los NaN guardados se tratan como «sin dato», nunca se emiten
+        return None
+    return max(0, min(100, int(round(float(p) * 100))))
+
+
 def confidence(result: dict) -> dict:
-    """Indicador orientativo: seguridad del modelo en lo marcado y tamaño de la zona principal."""
+    """Tarjeta de confianza: porcentaje (puntaje del modelo) más el indicador interno de nivel.
+
+    `label`/`level` se conservan en la API para quien ya los consuma; la tarjeta muestra `title` y `percent`.
+    """
     comps = result.get("components") or []
     largest = comps[0]["area_px"] if comps else 0
     mean_prob = result.get("mean_prob_slick") or 0.0
-    if result.get("slick_px", 0) == 0:
-        return {"label": "—", "level": "none",
-                "text": "No hay zonas marcadas, por lo que no se calcula un nivel de confianza."}
-    if mean_prob >= 0.97 and largest >= 1000:
-        level, label = "high", "Alta"
-    elif mean_prob >= 0.95 and largest >= 300:
-        level, label = "medium", "Media"
+    pct = model_score_percent(result)
+    detected = result.get("slick_px", 0) > 0
+    pct_txt = "—" if pct is None else f"{pct} %"
+    mx = result.get("max_prob")
+    weak = bool((not detected) and mx is not None and math.isfinite(float(mx)) and WEAK_SIGNAL_MIN < mx < config.DEFAULT_THRESHOLD)
+    if not detected:
+        level, label = "none", "—"
+        title = f"Confianza de que no hay derrame: {pct_txt}"
     else:
-        level, label = "low", "Baja"
-    rel = config.VAL_RELIABILITY
-    text = (
-        "En pruebas con imágenes de otras regiones sin derrame, el sistema dio falsa alarma"
-        " en 1 de cada 4 o 5. Revise siempre el resultado.")
-    return {"label": label, "level": level, "text": text}
+        if mean_prob >= 0.97 and largest >= 1000:
+            level, label = "high", "Alta"
+        elif mean_prob >= 0.95 and largest >= 300:
+            level, label = "medium", "Media"
+        else:
+            level, label = "low", "Baja"
+        title = f"Confianza: {pct_txt}"
+    return {"label": label, "level": level, "percent": pct, "title": title, "weak_signal": weak,
+            "text": FALSE_ALARM_LINE}
 
 
 def loc_text_short(state: str, lat, lon, a: dict) -> str:
@@ -98,7 +128,7 @@ def describe(a: dict) -> dict:
     conf = confidence(result)
     warnings = result.get("warnings") or []
     if any(w["code"] == "color" for w in warnings):
-        conf = {"label": "No evaluable", "level": "none",
+        conf = {"label": "No evaluable", "level": "none", "percent": None, "title": "Confianza: —", "weak_signal": False,
                 "text": "La imagen no se parece a los datos de entrenamiento (radar en escala de grises); no se puede estimar la confianza."}
 
     if pct <= 0 or n == 0:
@@ -152,6 +182,7 @@ def describe(a: dict) -> dict:
         "headline": headline,
         "text": text,
         "confidence": conf,
+        "confidence_percent": conf.get("percent"),
         "location": {"state": state, "text": loc_text, "coords": coords_text(lat, lon),
                      "region": None},
         "acquired": acquired,

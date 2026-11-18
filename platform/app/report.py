@@ -76,7 +76,7 @@ def build_report(a: dict, folder: Path, model_info: dict | None, sim: dict | Non
         ("Superficie estimada",
          f"{a['slick_area_km2']} km²" if a.get("slick_area_km2") is not None else "no calculada (sin ubicación ni resolución)"),
         ("Zonas detectadas", a.get("n_components")),
-        ("Confianza orientativa", s["confidence"]["label"]),
+        ("Puntaje de confianza del modelo", s["confidence"]["title"].split(": ", 1)[1]),
         ("Ubicación", loc["text"]),
     ]
     table = "".join(f"<tr><th>{html.escape(str(k))}</th><td>{html.escape(str(v))}</td></tr>" for k, v in rows)

@@ -158,6 +158,7 @@ def summarize(mask: np.ndarray, prob: np.ndarray, pixel_km2: float | None) -> di
         "slick_px": slick,
         "slick_pct": round(100.0 * slick / total, 4),
         "mean_prob_slick": round(float(prob[mask].mean()), 4) if slick else None,
+        "max_prob": round(float(prob.max()), 4) if prob.size else None,
         "n_components": len(comps),
         "components": comps[:20],
         "slick_area_km2": round(slick * pixel_km2, 4) if pixel_km2 else None,

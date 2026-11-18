@@ -299,3 +299,5 @@ details.fold-plain { margin: .6rem 0; }
 .steps3 { margin: .4rem 0 .6rem 1.2rem; padding: 0; } .steps3 li { margin: .25rem 0; }
 .mode-tabs { display: flex; flex-wrap: wrap; gap: .4rem; margin-bottom: .8rem; }
 .mode-tabs button.on { border-color: var(--turq); color: var(--turq); }
+.conf-bar { height: 6px; border-radius: 6px; background: var(--line); overflow: hidden; margin: .5rem 0; }
+.conf-bar i { display: block; height: 100%; background: var(--turq); }

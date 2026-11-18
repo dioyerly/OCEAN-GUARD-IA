@@ -399,7 +399,9 @@ function renderAnalysis(a) {
       <div class="facts">
         <div class="fact"><div class="n">${area}</div><div class="l">Superficie estimada</div><div class="e">${areaExtra}</div></div>
         <div class="fact"><div class="n">${fmt(a.n_components, 0)}</div><div class="l">Zonas detectadas</div><div class="e">Manchas separadas que el modelo marcó.</div></div>
-        <div class="fact wide"><div class="n">Confianza: ${esc(conf.label)}</div><div class="l">Qué tan fiable es este resultado</div><div class="e">${esc(conf.text)}</div></div>
+        <div class="fact wide"><div class="n">${esc(conf.title || "Confianza: —")}</div><div class="l">Puntaje del modelo para este resultado</div>
+          <div class="conf-bar" role="img" aria-label="Puntaje del modelo"><i style="width:${Math.max(0, Math.min(100, conf.percent || 0))}%"></i></div>
+          <div class="e">${esc(conf.text)}</div>${conf.weak_signal ? `<div class="e">Se vieron señales débiles por debajo del umbral.</div>` : ""}</div>
         ${loc.state !== "georef" ? `<div class="fact wide"><div class="n" style="font-size:1.05rem">${locChip(loc.state)}</div><div class="e">${esc(loc.text)}</div></div>` : ""}
       </div>
     </div>
