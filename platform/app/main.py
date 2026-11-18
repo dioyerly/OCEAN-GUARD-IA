@@ -391,12 +391,12 @@ def analyze_example(sample_id: str):
     georef = geo.read_georef(tif) if tif.exists() else None
     if georef:
         bounds = geo.bounds_from_georef(georef, W, H)
-        location_kind = "georreferencia del dataset (GeoTIFF EPSG:4326)"
+        location_kind = "georreferencia del archivo (GeoTIFF EPSG:4326)"
     else:
         bounds, location_kind = None, "no indicada"
 
     return _run_pipeline(
-        rgb, source="ejemplo del dataset (val)", filename=f"{sample_id}.png",
+        rgb, source="ejemplo", filename=f"{sample_id}.png",
         bounds=bounds, location_kind=location_kind, reference_mask=ref,
         extra_result={"scene": scene_meta.for_sample(sample_id)},
     )

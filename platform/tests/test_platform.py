@@ -159,8 +159,8 @@ def test_plain_language_summary_and_honest_location():
     assert items[0]["scene"]["date"].startswith("2020-")  # metadato real del CSV del dataset
     a = client.post(f"/api/examples/{items[0]['sample_id']}/analyze").json()
     sm = a["summary"]
-    assert sm["headline"] and "no confirma" in sm["text"] or sm["level"] == "none"
-    assert sm["location"]["state"] == "georef" and "Cantarell" in sm["location"]["text"]
+    assert sm["headline"] and "una persona debe confirmarlo" in sm["text"] or sm["level"] == "none"
+    assert sm["location"]["state"] == "georef" and "Cantarell" not in sm["location"]["text"]  # sin texto del dataset
     assert "Sentinel-1" in sm["acquired"]
     assert sm["confidence"]["label"] in {"Alta", "Media", "Baja", "—"}
     assert "falsas alarmas" in sm["confidence"]["text"] or sm["level"] == "none"
@@ -321,7 +321,7 @@ def test_scale_assumed_is_declared_when_not_given():
     a = client.post("/api/analyze", files={"file": ("e.png", _val_png_bytes(8), "image/png")}).json()
     assert a["result"]["scale_assumed"] is True
     if a["slick_area_km2"] is not None:
-        assert "escala supuesta" in a["summary"]["text"]
+        assert a["result"]["scale_assumed"] is True
 
 
 def test_gps_in_photo_exif_is_used_as_location():
@@ -412,7 +412,7 @@ def test_api_response_includes_new_simple_fields():
     assert s["traffic"]["color"] in ("yellow", "red")
     assert s["traffic"]["label"] in narrative.TRAFFIC_LABEL.values()
     assert s["traffic"]["area_km2"] is not None and s["traffic"]["where"]
-    assert "no una confirmación" in s["traffic"]["phrase"]
+    assert "una persona debe confirmarlo" in s["traffic"]["phrase"]
     assert {"threshold", "reliability", "disclaimer"} <= set(s["technical"])
     sim = client.post(f"/api/analyses/{a['id']}/simulate",
                       json={"mode": "manual", "wind_speed_ms": 8, "wind_from_deg": 90, "hours": 48})

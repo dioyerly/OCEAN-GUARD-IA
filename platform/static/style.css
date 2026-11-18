@@ -70,7 +70,7 @@ details { margin: .6rem 0; } summary { cursor: pointer; color: var(--turq); font
 
 /* ---- tarjetas ---- */
 .card { background: linear-gradient(180deg, var(--panel), #08213a); border: 1px solid var(--line); border-radius: var(--radius); padding: 1.1rem 1.2rem; box-shadow: 0 8px 30px #0006; }
-.inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem; }
+.inputs { display: grid; grid-template-columns: 1fr; gap: 1rem; margin-bottom: 1rem; }
 .alert { padding: .8rem 1rem; border-radius: 12px; margin: .8rem 0; border: 1px solid; }
 .alert.error { background: #4a1b22; border-color: #8a3340; color: #ffd0d0; }
 .alert.info { background: #0d3350; border-color: #2d6e99; }
@@ -295,3 +295,5 @@ details { margin: .6rem 0; } summary { cursor: pointer; color: var(--turq); font
 details.fold > summary { color: var(--fg); font-weight: 650; } details.fold > summary h2, details.fold > summary h3 { display: inline; font-size: 1rem; }
 details.fold-plain { margin: .6rem 0; }
 @media (max-width: 1150px) { .dash-grid { grid-template-columns: 1fr; } .dash-ribbon { flex-direction: row; max-height: none; overflow-x: auto; } .dash-ribbon .rcard { flex: 0 0 230px; } .dash-center .stage { height: 460px; } .dash-detail { max-height: none; } }
+.sim-banner { font-size: .85rem; padding: .35rem .8rem; opacity: .85; }
+.steps3 { margin: .4rem 0 .6rem 1.2rem; padding: 0; } .steps3 li { margin: .25rem 0; }

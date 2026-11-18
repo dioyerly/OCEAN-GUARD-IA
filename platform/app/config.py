@@ -41,9 +41,8 @@ MSG_NOT_RADAR = ("Esta imagen no parece de radar satelital (Sentinel-1, en blanc
 ALLOWED_EXTENSIONS = {".png", ".jpg", ".jpeg", ".tif", ".tiff"}
 
 DISCLAIMER_DETECTION = (
-    "Resultado generado por un modelo de aprendizaje automático entrenado con un dataset "
-    "académico. Es una detección asistida que requiere validación humana; no sustituye "
-    "vigilancia oficial ni debe usarse para decisiones operativas."
+    "Detección asistida por un modelo de aprendizaje automático: requiere validación humana; "
+    "no sustituye vigilancia oficial ni debe usarse para decisiones operativas."
 )
 DISCLAIMER_SIMULATION = (
     "SIMULACIÓN ILUSTRATIVA. Modelo de deriva simplificado (advección por viento, difusión "

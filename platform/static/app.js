@@ -62,6 +62,7 @@ async function api(path, options = {}) {
 const locState = (a) => a.location_state || (a.summary && a.summary.location && a.summary.location.state) || "none";
 const levelOf = (a) => a.level || (a.summary && a.summary.level) || "none";
 function locChip(s) {
+  if (s === "georef") return "";
   const m = { georef: ["georef", "Ubicación real del archivo"], manual: ["manual", "Ubicación aproximada"], none: ["none", "Sin ubicación confirmada"] }[s] || ["none", "Sin ubicación confirmada"];
   return `<span class="chip ${m[0]}">${m[1]}</span>`;
 }
@@ -83,7 +84,6 @@ function setView(name) {
   if (name === "map") loadMap();
   if (name === "simulate") loadSimulateOptions();
   if (name === "history") loadHistory();
-  if (name === "analyze") loadExamples();
   setTimeout(() => Object.values(state.maps).forEach((m) => m.invalidateSize && m.invalidateSize()), 120);
 }
 
@@ -171,80 +171,27 @@ function drawEvent(groups, a, popup = true, onSelect = null) {
 }
 
 // ---------- contexto: clima, impacto y qué hacer ----------
-function gaugeSvg(level) {
-  const frac = { low: 0.17, medium: 0.5, high: 0.83 }[level] ?? 0.17;
-  const pt = (a, r) => [100 + r * Math.cos((a * Math.PI) / 180), 100 - r * Math.sin((a * Math.PI) / 180)];
-  const arc = (a0, a1, col) => {
-    const [x0, y0] = pt(a0, 80), [x1, y1] = pt(a1, 80);
-    return `<path d="M${x0.toFixed(1)} ${y0.toFixed(1)} A80 80 0 0 1 ${x1.toFixed(1)} ${y1.toFixed(1)}" stroke="${col}" stroke-width="14" fill="none"/>`;
-  };
-  const [nx, ny] = pt(180 - frac * 180, 62);
-  return `<svg viewBox="0 0 200 112" role="img" aria-label="Nivel de atención">
-    ${arc(178, 122, RISK_COLOR.low)}${arc(118, 62, RISK_COLOR.medium)}${arc(58, 2, RISK_COLOR.high)}
-    <line x1="100" y1="100" x2="${nx.toFixed(1)}" y2="${ny.toFixed(1)}" stroke="#fff" stroke-width="4" stroke-linecap="round"/>
-    <circle cx="100" cy="100" r="7" fill="#fff"/></svg>`;
-}
 function windArrowSvg(toDeg, color = "#ffb703") {
   return `<svg viewBox="0 0 44 44" aria-hidden="true"><circle cx="22" cy="22" r="20" fill="#061b2e" stroke="#2a5a7c"/>
     <g transform="rotate(${toDeg} 22 22)"><path d="M22 6 30 30 22 25 14 30z" fill="${color}"/></g></svg>`;
 }
 
-function windChart(c) {
-  const rows = (c.weather && c.weather.hourly) || [];
-  if (!rows.length) return "";
-  const n = rows.length, W = 560, H = 140, padL = 26, padB = 20, padT = 14;
-  const plotW = W - padL - 4, plotH = H - padB - padT, bw = plotW / n;
-  const maxW = Math.max(15, ...rows.map((r) => r.wind_ms));
-  const y = (v) => padT + plotH - (v / maxW) * plotH;
-  let svg = `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Viento previsto por hora">`;
-  (c.windows || []).forEach((w) => {
-    const i0 = rows.findIndex((r) => r.t === w.start), i1 = rows.findIndex((r) => r.t === w.end);
-    if (i0 >= 0 && i1 >= i0) svg += `<rect x="${(padL + i0 * bw).toFixed(1)}" y="${padT}" width="${((i1 - i0 + 1) * bw).toFixed(1)}" height="${plotH}" fill="#2ee6d0" opacity=".16"/>`;
-  });
-  rows.forEach((r, i) => {
-    const h = (r.wind_ms / maxW) * plotH;
-    const col = r.wind_ms >= 12 ? "#ff6a3d" : r.wind_ms > 8 ? "#ffb703" : "#2ee6d0";
-    svg += `<rect x="${(padL + i * bw + 0.5).toFixed(1)}" y="${y(r.wind_ms).toFixed(1)}" width="${Math.max(bw - 1, 1).toFixed(1)}" height="${h.toFixed(1)}" fill="${col}" rx="1"><title>${esc(utcLabel(r.t))} UTC · viento ${fmt(r.wind_ms, 1)} m/s desde el ${compassOf(r.wind_from)}</title></rect>`;
-    if (i % 6 === 0) svg += `<g transform="translate(${(padL + i * bw + bw / 2).toFixed(1)} ${padT - 6}) rotate(${(r.wind_from + 180) % 360})"><path d="M0 -4 3 3 0 1.5 -3 3z" fill="#cfe6f5"/></g>`;
-    if (i % 12 === 0) svg += `<text x="${(padL + i * bw).toFixed(1)}" y="${H - 6}">${esc(utcLabel(r.t))}</text>`;
-  });
-  svg += `<line x1="${padL}" x2="${W - 4}" y1="${y(8).toFixed(1)}" y2="${y(8).toFixed(1)}" stroke="#ffffff" stroke-opacity=".35" stroke-dasharray="4 4"/>
-    <text x="2" y="${(y(8) + 3).toFixed(1)}">8</text><text x="2" y="${(padT + 3)}">${Math.round(maxW)}</text>`;
-  if (c.weather.has_waves) {
-    const waves = rows.map((r) => r.wave_m);
-    const maxWave = Math.max(3, ...waves.filter((v) => v != null));
-    const pts = waves.map((v, i) => (v == null ? null : `${(padL + i * bw + bw / 2).toFixed(1)},${(padT + plotH - (v / maxWave) * plotH).toFixed(1)}`)).filter(Boolean).join(" ");
-    svg += `<polyline points="${pts}" fill="none" stroke="#6db7ff" stroke-width="2"/>`;
-  }
-  return svg + "</svg>";
+function windLine(st) {
+  if (!st) return "";
+  const v = st.wind_mean_ms, lvl = v < 3 ? "suave" : v < 10 ? "moderado" : "fuerte";
+  return `Viento: ${fmt(v, 0)} m/s del ${compassOf(st.wind_from_mean_deg)} (${lvl})`;
 }
-
 function contextHtml(c) {
-  const risk = c.risk, wx = c.weather || {}, st = c.stats;
-  const gauge = `<div class="ctx-head"><h3>Nivel de atención</h3>
-    <div class="gauge">${gaugeSvg(risk.level)}</div>
-    <div class="gauge-label" style="color:${RISK_COLOR[risk.level]}">${esc(risk.label)}<small>indicador orientativo</small></div>
-    <ul class="reasons">${risk.reasons.map((r) => `<li>${esc(r)}</li>`).join("")}</ul></div>`;
-  let wxHtml;
-  if (wx.available) {
-    const chips = [`Viento medio ${fmt(st.wind_mean_ms, 0)} m/s`, `Máximo ${fmt(st.wind_max_ms, 0)} m/s${st.gust_max_ms ? ` (ráfagas ${fmt(st.gust_max_ms, 0)})` : ""}`,
-      `Desde el ${compassOf(st.wind_from_mean_deg)}`];
-    if (st.wave_max_m != null) chips.push(`Olas hasta ${fmt(st.wave_max_m, 1)} m`);
-    if (st.current_max_ms != null) chips.push(`Corrientes hasta ${fmt(st.current_max_ms, 2)} m/s`);
-    wxHtml = `<h3>Clima y mar</h3>
-      <p class="muted small">${esc(wx.source)} · horas en UTC${wx.mode === "forecast" ? " · próximas " + wx.hours + " h" : ""}</p>
-      <div class="chips">${chips.map((x) => `<span class="wxchip">${esc(x)}</span>`).join("")}</div>
-      ${windChart(c)}
-      <p class="muted small">Barras: viento (m/s; naranja = fuerte). ${wx.has_waves ? "Línea azul: olas. " : ""}Zona turquesa: horas con condiciones favorables para trabajar en el agua. Línea punteada: 8 m/s.</p>
-      ${(wx.notes || []).map((n) => `<p class="muted small">ℹ ${esc(n)}</p>`).join("")}`;
-  } else {
-    wxHtml = `<h3>Clima y mar</h3><div class="notice">${esc(wx.reason || "Clima no disponible.")}</div>`;
-  }
-  const impact = c.impact.length ? `<h3>Qué podría verse afectado</h3><ul class="impact">${c.impact.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>` : "";
-  const recs = `<h3>Qué se puede hacer</h3><div class="recs">${c.recommendations.map((r) =>
-    `<div class="rec"><div class="num">${r.n}</div><div><h4>${esc(r.title)}</h4><p>${esc(r.text)}</p><p class="why">Por qué: ${esc(r.why)}</p></div></div>`).join("")}</div>
-    <p class="disclaimer">${esc(c.general_note)}</p>`;
-  return `<div class="ctx"><div class="ctx-grid"><div>${gauge}</div><div>${wxHtml}${impact}</div></div>${recs}</div>`;
+  const wx = c.weather || {}, st = c.stats;
+  const wind = wx.available
+    ? `<p>${esc(windLine(st))}.</p>${(wx.notes || []).map((n) => `<p class="muted small">ℹ ${esc(n)}</p>`).join("")}`
+    : `<div class="notice">${esc(wx.reason || "Clima no disponible.")}</div>`;
+  const items = c.impact.filter((x) => !/^(Viento medio|Con ese viento)/.test(x));
+  const impact = items.length ? `<ul class="impact">${items.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>` : "";
+  const steps = `<h3>Qué se puede hacer</h3><ol class="steps3"><li>Confirmar con otra fuente (imagen óptica, sobrevuelo o reporte en el lugar).</li>
+    <li>Avisar a la autoridad marítima o ambiental con las coordenadas y la imagen.</li><li>Volver a revisar la zona en 6 a 12 horas.</li></ol>
+    <p class="small muted">No se acerque sin equipo y personal capacitados.</p>`;
+  return `<div class="ctx">${wind}${impact}${steps}</div>`;
 }
 
 async function loadAnalysisContext(a) {
@@ -313,7 +260,7 @@ async function loadDashboard() {
     const head = document.getElementById("dash-headline"), sub = document.getElementById("dash-subline");
     if (!list.items.length) {
       head.textContent = "Aún no hay eventos en observación";
-      sub.textContent = "Analice una imagen o un ejemplo del dataset para empezar.";
+      sub.textContent = "Analice una imagen para empezar.";
     } else {
       const flagged = list.items.filter((a) => a.slick_pct > 0).length;
       head.textContent = flagged ? `${flagged} ${flagged === 1 ? "evento" : "eventos"} en observación` : "Sin zonas sospechosas por ahora";
@@ -325,7 +272,7 @@ async function loadDashboard() {
       ["var(--blue)", fmt(c.analyses, 0), "", "Imágenes analizadas", "Cada imagen de satélite que el modelo ha revisado."],
       ["var(--slick)", fmt(c.with_slick, 0), "", "Con posible derrame", "Imágenes donde el modelo marcó alguna zona. No son confirmaciones."],
       ["var(--turq)", fmt(c.total_slick_area_km2, 1), " km²", "Superficie marcada", "Suma estimada; solo cuenta imágenes con ubicación y escala."],
-      ["var(--sim)", fmt(c.simulations, 0), "", "Simulaciones", "Escenarios ilustrativos de hacia dónde podría moverse una mancha."],
+      ["var(--sim)", fmt(c.simulations, 0), "", "Simulaciones", "Estimaciones de hacia dónde podría moverse una mancha."],
     ];
     document.getElementById("dash-cards").innerHTML = kpis.map(([col, n, u, l, e]) =>
       `<div class="kpi" style="--c:${col}"><div class="n">${n}<small>${u}</small></div><div class="l">${esc(l)}</div><div class="e">${esc(e)}</div></div>`).join("");
@@ -333,9 +280,8 @@ async function loadDashboard() {
 
     const m = d.model, r = d.reliability;
     document.getElementById("dash-model").innerHTML = m ? `
-      <p><b style="color:var(--turq)">Listo para analizar.</b> En pruebas con imágenes del dataset, de cada 100 puntos que marcó como derrame, unos
+      <p><b style="color:var(--turq)">Listo para analizar.</b> En pruebas, de cada 100 puntos que marcó como derrame, unos
         <b>${Math.round(r.precision * 100)}</b> lo eran, y encontró unos <b>${Math.round(r.recall * 100)}</b> de cada 100 puntos de derrame reales.</p>
-      <p class="muted small">${esc(r.note)}</p>
       <details><summary>Detalles técnicos</summary><dl class="kv">
         <dt>Arquitectura</dt><dd>${esc(m.architecture)}</dd><dt>Entrenamiento</dt><dd>época ${esc(m.epoch)} (fase 1)</dd>
         <dt>Dice de validación</dt><dd>${fmt(m.val_dice, 4)} (umbral de entrenamiento)</dd><dt>Pesos verificados</dt><dd>${m.weights_sha256_ok ? "sí" : "no"}</dd>
@@ -365,7 +311,7 @@ function drawDashMap(located) {
       ["sw foot-m", "Imagen con ubicación aproximada"], ["pin", "Evento"]].map(([c, t]) => `<span><i class="${c}"></i>${esc(t)}</span>`).join("");
   } else {
     empty.hidden = false;
-    empty.innerHTML = "<div><b>Aún no hay eventos con ubicación.</b><p>Analice un ejemplo del dataset o una imagen con ubicación para verlo aquí.</p></div>";
+    empty.innerHTML = "<div><b>Aún no hay eventos con ubicación.</b><p>Analice una imagen con ubicación para verlo aquí.</p></div>";
   }
 }
 
@@ -407,17 +353,6 @@ async function selectDashEvent(id, fly) {
 }
 
 // ---------- análisis ----------
-async function loadExamples() {
-  const sel = document.getElementById("example-select");
-  if (sel.options.length) return;
-  try {
-    const data = await api("/api/examples");
-    sel.innerHTML = data.items.map((i) => {
-      const s = i.scene;
-      return `<option value="${esc(i.sample_id)}">${esc(i.sample_id)}${s ? ` · ${esc(s.date)}` : ""}</option>`;
-    }).join("");
-  } catch (err) { showError(`Ejemplos no disponibles: ${err.message}`); }
-}
 
 // Franja de resumen (semáforo + frase + área) sobre el resultado; la regla del semáforo está en el backend (narrative.TRAFFIC_RULES).
 const TRAFFIC_ICON = { green: "✓", yellow: "!", red: "!" };
@@ -433,7 +368,7 @@ function renderAnalysis(a) {
   const icon = s.level === "none" ? "✓" : "◉";
   const area = a.slick_area_km2 != null ? `${fmt(a.slick_area_km2, 1)} km²` : `${fmt(a.slick_pct, 2)} %`;
   const areaExtra = a.slick_area_km2 != null ? `Aproximadamente el ${fmt(a.slick_pct, 2)} % de la imagen.` : "No se puede pasar a km² sin ubicación ni escala conocidas.";
-  const matchTxt = ref ? `<p>Esta imagen es del conjunto de validación: la zona marcada por el modelo coincide en un <b>${Math.round(ref.dice * 100)} %</b>
+  const matchTxt = ref ? `<p>La zona marcada por el modelo coincide en un <b>${Math.round(ref.dice * 100)} %</b>
       con la que dibujó un experto.</p><p class="muted small">Detalle técnico: Dice ${fmt(ref.dice, 4)}, IoU ${fmt(ref.iou, 4)}.</p>` : "";
   const ctxBlock = (a.bounds && a.slick_pct > 0
     ? `<details class="card ctx-card fold"><summary><h2>Qué podría verse afectado y qué hacer</h2></summary><div id="ctx-box"><p class="skeleton">Consultando clima y costa reales…</p></div></details>`
@@ -446,7 +381,7 @@ function renderAnalysis(a) {
       <div>
         <h2>${esc(s.headline)}</h2>
         <p>${esc(s.text)}</p>
-        <div>${levelChip(s.level)}${locChip(loc.state)}${s.acquired ? `<span class="chip none">${esc(s.acquired)}</span>` : ""}</div>
+        <div>${locChip(loc.state)}${s.acquired ? `<span class="chip none">${esc(s.acquired)}</span>` : ""}</div>
       </div>
     </div>
     <div class="result-grid">
@@ -464,8 +399,8 @@ function renderAnalysis(a) {
       <div class="facts">
         <div class="fact"><div class="n">${area}</div><div class="l">Superficie estimada</div><div class="e">${areaExtra}</div></div>
         <div class="fact"><div class="n">${fmt(a.n_components, 0)}</div><div class="l">Zonas detectadas</div><div class="e">Manchas separadas que el modelo marcó.</div></div>
-        <div class="fact wide"><div class="n">Confianza: ${esc(conf.label)}</div><div class="l">Qué tan fiable es este resultado</div><details><summary>Cómo se calcula</summary><div class="e">${esc(conf.text)}</div></details></div>
-        <div class="fact wide"><div class="n" style="font-size:1.05rem">${locChip(loc.state)}</div><div class="e">${esc(loc.text)}</div></div>
+        <div class="fact wide"><div class="n">Confianza: ${esc(conf.label)}</div><div class="l">Qué tan fiable es este resultado</div><div class="e">${esc(conf.text)}</div></div>
+        ${loc.state !== "georef" ? `<div class="fact wide"><div class="n" style="font-size:1.05rem">${locChip(loc.state)}</div><div class="e">${esc(loc.text)}</div></div>` : ""}
       </div>
     </div>
     ${a.bounds ? `<div class="mini-map"><h3>Dónde se encuentra</h3><div id="result-map" class="map"></div></div>`
@@ -529,7 +464,7 @@ function mapGroupsEnsure() {
     Object.values(state.mapGroups).forEach((g) => g.addTo(map));
     addHtmlControl(map, "bottomleft", "legend", legendHtml([
       ["sw slick", "Zona marcada por el modelo"], ["sw foot", "Imagen con ubicación real"], ["sw foot-m", "Ubicación aproximada"],
-      ["sw sim", "Simulación (ilustrativa)"], ["pin", "Evento"]]));
+      ["sw sim", "Simulación (estimada)"], ["pin", "Evento"]]));
     [["lyr-slick", "slick"], ["lyr-foot", "foot"], ["lyr-sim", "sim"]].forEach(([id, key]) => {
       document.getElementById(id).addEventListener("change", (e) => {
         if (e.target.checked) state.mapGroups[key].addTo(map); else map.removeLayer(state.mapGroups[key]);
@@ -549,7 +484,7 @@ async function loadMap() {
     located.forEach((a) => drawEvent(state.mapGroups, a));
     document.getElementById("map-list").innerHTML = located.length
       ? located.map((a) => eventCard(a, `selectEvent('${esc(a.id)}', true)`)).join("")
-      : "<p class=\"muted\">No hay análisis con ubicación. Analice un ejemplo del dataset o indique latitud y longitud al cargar una imagen.</p>";
+      : "<p class=\"muted\">No hay análisis con ubicación. Indique latitud y longitud al cargar una imagen.</p>";
     if (located.length) map.fitBounds(located.map((a) => a.bounds).flat(), { padding: [60, 60], maxZoom: 10 });
     if (state.selectedId) selectEvent(state.selectedId, false);
   } catch (err) { showError(err.message); }
@@ -581,7 +516,7 @@ async function selectEvent(id, fly) {
       const last = sim.frames[sim.frames.length - 1];
       L.imageOverlay(`data:image/png;base64,${last.png_b64}`, sim.bounds, { opacity: 0.85 }).addTo(state.mapGroups.sim);
       drawTrack(state.mapGroups.sim, sim);
-      document.getElementById("map-sim-note").textContent = `Se muestra la última simulación (${fmt(sim.params.hours, 0)} h), ilustrativa.`;
+      document.getElementById("map-sim-note").textContent = `Se muestra la última simulación (${fmt(sim.params.hours, 0)} h).`;
     } catch (_) { /* sin simulación: es normal */ }
   }
 }
@@ -628,7 +563,7 @@ async function loadSimulateOptions(preselect = state.simPreselect) {
     updateCompass();
     if (!usable.length) {
       sel.innerHTML = "";
-      document.getElementById("sim-summary").innerHTML = "<p class=\"muted\">No hay eventos con zona marcada. Analice un ejemplo del dataset o suba su propia imagen.</p>";
+      document.getElementById("sim-summary").innerHTML = "<p class=\"muted\">No hay eventos con zona marcada. Suba su propia imagen.</p>";
       return;
     }
     sel.innerHTML = usable.map((a) => `<option value="${esc(a.id)}">${esc(a.filename || a.id)}${a.bounds ? "" : " · sin ubicación"} · ${fmtDate(a.created_at)}</option>`).join("");
@@ -790,7 +725,7 @@ function renderSim(sim) {
      <div><b>Viento desde el ${esc(compassOf(p.wind_from_deg))}</b><br>
      <span class="muted">${fmt(p.wind_speed_ms, 0)} m/s · ${f.mode === "weather" ? "clima real" : "manual"}${sim.drift.bearing_to_deg != null ? " · deriva hacia el " + esc(sim.drift.direction_es) : ""}</span></div>`));
   state.simControls.push(addHtmlControl(map, "bottomleft", "legend", legendHtml([
-    ["sw slick", "Mancha detectada hoy"], ["sw sim", "Mancha simulada (ilustrativa)"], ["sw zone", "Zona que podría verse afectada"],
+    ["sw slick", "Mancha detectada hoy"], ["sw sim", "Mancha estimada"], ["sw zone", "Zona que podría verse afectada"],
     ["sw track", "Trayectoria estimada (marcas cada 6 h)"], ["pin", "Origen"]])));
 
   const slider = document.getElementById("sim-frame");
@@ -810,14 +745,7 @@ function renderSim(sim) {
 
   const as = sim.assumptions;
   document.getElementById("sim-summary").innerHTML = `
-    <h3>Qué muestra la simulación</h3>
-    <p>${esc(sim.narrative)}</p>
-    <p class="small muted">Condiciones: ${esc(f.source)}.</p>
-    <table class="stage-table"><thead><tr><th>Momento</th><th>Área estimada de la mancha</th><th>Cantidad restante</th></tr></thead><tbody>
-      ${sim.stages.map((s) => `<tr><td>${s.hour === 0 ? "Inicio" : s.hour + " horas"}</td><td>${fmt(s.area_km2, 1)} km²</td><td>${fmt(s.remaining_mass_pct, 0)} %</td></tr>`).join("")}
-    </tbody></table>
-    <p class="small muted">Zona potencialmente afectada en este escenario: unos ${fmt(sim.affected_zone.area_km2, 1)} km² (resaltada en amarillo en el mapa).</p>
-    <div class="alert info small">${esc(sim.disclaimer)}</div>
+    <p>${esc(windLine({ wind_mean_ms: p.wind_speed_ms, wind_from_mean_deg: p.wind_from_deg }))}.</p>
     <details><summary>Supuestos de la simulación</summary><dl class="kv">
       <dt>Deriva</dt><dd>${fmt(as.drift_factor_of_wind * 100, 0)} % de la velocidad del viento${f.uses_currents ? " + corriente superficial" : ""}</dd>
       <dt>Difusión</dt><dd>${fmt(as.diffusivity_m2_s, 0)} m²/s</dd><dt>Degradación</dt><dd>${fmt(as.decay_per_hour * 100, 0)} % por hora</dd>
@@ -831,7 +759,7 @@ function renderSim(sim) {
 function simpleSimBlock(sim) {
   const s = sim.simple;
   if (!s) return "";
-  const rows = s.stages.map((r) => `<tr><td>${r.hour} horas</td><td>${fmt(r.displacement_km, 1)} km</td></tr>`).join("");
+  const rows = s.stages.filter((r) => r.hour <= 12).map((r) => `<tr><td>${r.hour} horas</td><td>${fmt(r.displacement_km, 1)} km</td></tr>`).join("");
   const c = s.coast;
   const coast = !c ? "Sin ubicación confirmada no se puede evaluar la costa."
     : `La costa más cercana está a ${fmt(c.distance_km, 0)} km hacia el ${esc(c.direction_es)}. ` +
@@ -842,8 +770,7 @@ function simpleSimBlock(sim) {
     <table class="stage-table"><thead><tr><th>Pasado este tiempo</th><th>Se desplazó</th></tr></thead><tbody>${rows}</tbody></table>
     <p>${coast}</p>
     <p><span class="chip ${esc(s.severity.level)}">${esc(s.severity.label.toUpperCase())}</span> ${esc(s.severity.why)}</p>
-    ${rg ? `<p>Zona que podría verse afectada (estimación aproximada): entre ${fmt(rg[0], 1)} y ${fmt(rg[1], 1)} km².</p>` : ""}
-    <p class="small muted">Es una simulación simple, sin oleaje ni corrientes marinas.</p></div>`;
+    ${rg ? `<p>Zona que podría verse afectada (estimación aproximada): entre ${fmt(rg[0], 1)} y ${fmt(rg[1], 1)} km².</p>` : ""}</div>`;
 }
 
 async function runSimulation(event) {
@@ -1038,18 +965,6 @@ document.addEventListener("DOMContentLoaded", () => {
     finally { btn.disabled = false; setStatus(""); }
   });
 
-  document.getElementById("form-example").addEventListener("submit", async (event) => {
-    event.preventDefault();
-    clearError();
-    const id = event.target.elements.sample.value;
-    if (!id) { showError("Seleccione un ejemplo."); return; }
-    const btn = event.target.querySelector("button[type=submit]");
-    btn.disabled = true;
-    setStatus("Analizando el ejemplo… (la primera vez puede tardar unos segundos)");
-    try { showAnalysis(await api(`/api/examples/${encodeURIComponent(id)}/analyze`, { method: "POST" })); }
-    catch (err) { showError(err.message); }
-    finally { btn.disabled = false; setStatus(""); }
-  });
 
   wirePlaceSearch(document.getElementById("form-upload"));
   const form = document.getElementById("form-sim");
@@ -1065,5 +980,5 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("fit-domain").addEventListener("click", () => fitSim("domain"));
   document.getElementById("fit-coast").addEventListener("click", () => fitSim("coast"));
 
-  setView("dashboard");
+  setView("analyze");
 });

@@ -14,6 +14,7 @@ from .geo import compass_es
 #   amarillo = hay zona marcada, pero poco segura o pequeña  -> conviene revisarla
 #   rojo     = probabilidad media >= red_mean_prob y zona mayor >= red_min_component_px
 TRAFFIC_RULES = {"red_mean_prob": 0.97, "red_min_component_px": 1000}
+SUGGEST_SENTENCE = "El sistema sugiere un posible derrame; una persona debe confirmarlo."
 TRAFFIC_LABEL = {"green": "No se detecta derrame",
                  "yellow": "Posible derrame: conviene revisarlo",
                  "red": "Derrame probable"}
@@ -73,12 +74,8 @@ def confidence(result: dict) -> dict:
     else:
         level, label = "low", "Baja"
     rel = config.VAL_RELIABILITY
-    text = (
-        f"Indicador orientativo basado en lo seguro que está el modelo y en el tamaño de la zona principal. "
-        f"En pruebas con imágenes del dataset, de cada 100 puntos que el modelo marcó como derrame, "
-        f"unos {round(rel['precision'] * 100)} lo eran; y encontró unos {round(rel['recall'] * 100)} de cada 100 "
-        f"puntos de derrame reales. {rel['note']}"
-    )
+    text = (f"En pruebas, de cada 100 zonas que marca, unas {round(rel['precision'] * 100)} son derrames reales. "
+            "No se midieron falsas alarmas.")
     return {"label": label, "level": level, "text": text}
 
 
@@ -86,8 +83,7 @@ def loc_text_short(state: str, lat, lon, a: dict) -> str:
     """Dónde está, en pocas palabras."""
     if state == "none" or lat is None or lon is None:
         return ""
-    region = config.DATASET_REGION if (a.get("source") or "").startswith("ejemplo") else None
-    return (f"en el {region.split(' (')[0]} " if region else "en ") + f"({coords_text(lat, lon)})"
+    return f"en {coords_text(lat, lon)}"
 
 
 def describe(a: dict) -> dict:
@@ -115,24 +111,15 @@ def describe(a: dict) -> dict:
         headline = "Posible mancha compatible con un derrame"
         area_txt = (f" (unos {_num(area, 1)} km²{', escala supuesta' if result.get('scale_assumed') else ''})"
                     if area is not None else "")
-        text = (
-            f"El modelo identificó {zonas} compatible{'s' if n != 1 else ''} con un posible derrame. "
-            f"Ocupa{'n' if n != 1 else ''} {surface_phrase(pct)}{area_txt}. "
-            "Esto no confirma que se trate de petróleo: pueden existir manchas parecidas de otro origen "
-            "(por ejemplo, zonas de calma del mar). Se recomienda revisar visualmente el resultado."
-        )
+        text = SUGGEST_SENTENCE
 
     lat, lon = a.get("center_lat"), a.get("center_lon")
     if state == "georef" and "GPS de la foto" in (a.get("location_kind") or ""):
         loc_text = (f"Ubicación leída del GPS guardado en la foto: {coords_text(lat, lon)}. "
                     "La escala de la imagen es aproximada, así que el tamaño de la zona también lo es.")
-        region = None
     elif state == "georef":
-        region = config.DATASET_REGION if (a.get("source") or "").startswith("ejemplo") else None
         loc_text = ("Ubicación tomada de las coordenadas reales guardadas en el archivo"
                     + (f": {coords_text(lat, lon)}" if lat is not None else "") + ".")
-        if region:
-            loc_text += f" Zona: {region}."
     elif state == "manual":
         loc_text = (f"Ubicación aproximada indicada por usted ({coords_text(lat, lon)}). "
                     "No está verificada y el tamaño real depende de la resolución supuesta.")
@@ -148,14 +135,9 @@ def describe(a: dict) -> dict:
     color = traffic_light(result) if (pct > 0 and n > 0) else "green"
     where = loc_text_short(state, lat, lon, a)
     if color == "green":
-        phrase = "El modelo no marcó ninguna zona sospechosa en esta imagen. Esto no garantiza que no exista un derrame."
+        phrase = "El sistema no marcó ninguna zona sospechosa; una persona debe revisar la imagen."
     else:
-        zonas_t = "una zona" if n == 1 else f"{n} zonas"
-        phrase = (f"El modelo marcó {zonas_t} que {'podría' if color == 'yellow' else 'probablemente'} "
-                  f"{'ser un derrame' if n == 1 else 'ser derrames'}"
-                  + (f", de unos {_num(area, 1)} km²" if area is not None else "")
-                  + (f", {where}" if where else "")
-                  + ". Es una sugerencia del sistema, no una confirmación: una persona debe revisarla.")
+        phrase = SUGGEST_SENTENCE
     traffic = {"color": color, "label": TRAFFIC_LABEL[color], "phrase": phrase,
                "area_km2": area if color != "green" else None, "where": where if color != "green" else None}
     technical = {"confidence": conf, "threshold": config.DEFAULT_THRESHOLD, "min_component_px": config.MIN_COMPONENT_PX,
@@ -170,7 +152,7 @@ def describe(a: dict) -> dict:
         "text": text,
         "confidence": conf,
         "location": {"state": state, "text": loc_text, "coords": coords_text(lat, lon),
-                     "region": config.DATASET_REGION if state == "georef" and (a.get("source") or "").startswith("ejemplo") else None},
+                     "region": None},
         "acquired": acquired,
         "warnings": [w["text"] for w in warnings],
     }
