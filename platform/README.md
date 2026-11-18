@@ -35,13 +35,13 @@ informes siguen funcionando; el clima no estará disponible y se podrá simular 
 | Situación | Qué hace la plataforma |
 |---|---|
 | Imagen de **radar** (escala de grises) | Detección automática con el modelo |
-| **Foto, captura u otra imagen a color** | El modelo no la conoce: se avisa, y usted **pinta la mancha** con el pincel. El resto del análisis funciona igual a partir de su marca |
+| **Foto, captura u otra imagen a color** | No se analiza: se avisa que no parece de radar satelital (Sentinel-1, en blanco y negro) y se pide una imagen de radar |
 | La foto trae **GPS** | Se usa como ubicación (la escala sigue siendo aproximada) |
 | **Sin ubicación** | Se analiza igual: superficie (con la escala indicada o supuesta, y se avisa) y un **escenario «y si el viento viene de…»** de las 8 direcciones. La simulación se muestra sobre la propia imagen, sin pretender que está en un lugar |
 | Ubicación por **nombre** | Búsqueda de lugar (Open-Meteo Geocoding) o coordenadas; se marca como *aproximada* y habilita clima real, costa y mapa. Puede indicarse después de analizar |
 | **Escala** | «Ancho aproximado de la imagen (km)» para calcular áreas; si falta, se supone 10 m/px y se declara |
 
-Límites que la plataforma declara: lo que usted pinta no lo verifica el modelo; el clima real solo se consulta con ubicación; con ubicación
+Límites que la plataforma declara: el clima real solo se consulta con ubicación; con ubicación
 aproximada, el tamaño de la zona y la distancia a la costa son aproximados.
 
 ## Datos reales y datos estimados

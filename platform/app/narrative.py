@@ -9,6 +9,28 @@ from . import config
 from .geo import compass_es
 
 
+# Regla del semáforo (a partir de lo que el modelo ya calcula: probabilidad media y tamaño de la zona mayor).
+#   verde    = el modelo no marcó ninguna zona
+#   amarillo = hay zona marcada, pero poco segura o pequeña  -> conviene revisarla
+#   rojo     = probabilidad media >= red_mean_prob y zona mayor >= red_min_component_px
+TRAFFIC_RULES = {"red_mean_prob": 0.97, "red_min_component_px": 1000}
+TRAFFIC_LABEL = {"green": "No se detecta derrame",
+                 "yellow": "Posible derrame: conviene revisarlo",
+                 "red": "Derrame probable"}
+
+
+def traffic_light(result: dict) -> str:
+    """'green' | 'yellow' | 'red' según TRAFFIC_RULES."""
+    comps = result.get("components") or []
+    largest = comps[0]["area_px"] if comps else 0
+    if result.get("slick_px", 0) == 0 or not comps:
+        return "green"
+    if ((result.get("mean_prob_slick") or 0.0) >= TRAFFIC_RULES["red_mean_prob"]
+            and largest >= TRAFFIC_RULES["red_min_component_px"]):
+        return "red"
+    return "yellow"
+
+
 def _num(x: float, digits: int = 1) -> str:
     return f"{x:,.{digits}f}".replace(",", "§").replace(".", ",").replace("§", ".")
 
@@ -60,6 +82,14 @@ def confidence(result: dict) -> dict:
     return {"label": label, "level": level, "text": text}
 
 
+def loc_text_short(state: str, lat, lon, a: dict) -> str:
+    """Dónde está, en pocas palabras."""
+    if state == "none" or lat is None or lon is None:
+        return ""
+    region = config.DATASET_REGION if (a.get("source") or "").startswith("ejemplo") else None
+    return (f"en el {region.split(' (')[0]} " if region else "en ") + f"({coords_text(lat, lon)})"
+
+
 def describe(a: dict) -> dict:
     """Resumen comprensible de un análisis: titular, explicación, confianza y ubicación."""
     result = a.get("result") or {}
@@ -74,18 +104,7 @@ def describe(a: dict) -> dict:
         conf = {"label": "No evaluable", "level": "none",
                 "text": "La imagen no se parece a los datos de entrenamiento (radar en escala de grises); no se puede estimar la confianza."}
 
-    manual = bool(result.get("manual_mask"))
-    if manual:
-        conf = {"label": "No aplica", "level": "none",
-                "text": "La zona la marcó usted, no el modelo; el sistema no verificó que sea petróleo."}
-
-    if manual and pct > 0:
-        level = "medium"
-        headline = "Zona marcada por usted"
-        area_txt = f" (unos {_num(area, 1)} km²{', escala supuesta' if result.get('scale_assumed') else ''})" if area is not None else ""
-        text = (f"Usted marcó {'una zona' if n == 1 else f'{n} zonas'} que ocupa{'' if n == 1 else 'n'} {surface_phrase(pct)}{area_txt}. "
-                "El sistema no comprobó que sea petróleo: a partir de su marca calculó la superficie, el posible desplazamiento y qué hacer.")
-    elif pct <= 0 or n == 0:
+    if pct <= 0 or n == 0:
         level = "none"
         headline = "No se identificaron zonas compatibles con un derrame"
         text = ("El modelo no marcó ninguna zona de esta imagen como posible derrame. Esto no garantiza que "
@@ -126,7 +145,26 @@ def describe(a: dict) -> dict:
     if scene:
         acquired = f"{scene.get('satellite')} · {scene.get('date')} {scene.get('time_utc')} UTC"
 
+    color = traffic_light(result) if (pct > 0 and n > 0) else "green"
+    where = loc_text_short(state, lat, lon, a)
+    if color == "green":
+        phrase = "El modelo no marcó ninguna zona sospechosa en esta imagen. Esto no garantiza que no exista un derrame."
+    else:
+        zonas_t = "una zona" if n == 1 else f"{n} zonas"
+        phrase = (f"El modelo marcó {zonas_t} que {'podría' if color == 'yellow' else 'probablemente'} "
+                  f"{'ser un derrame' if n == 1 else 'ser derrames'}"
+                  + (f", de unos {_num(area, 1)} km²" if area is not None else "")
+                  + (f", {where}" if where else "")
+                  + ". Es una sugerencia del sistema, no una confirmación: una persona debe revisarla.")
+    traffic = {"color": color, "label": TRAFFIC_LABEL[color], "phrase": phrase,
+               "area_km2": area if color != "green" else None, "where": where if color != "green" else None}
+    technical = {"confidence": conf, "threshold": config.DEFAULT_THRESHOLD, "min_component_px": config.MIN_COMPONENT_PX,
+                 "reliability": config.VAL_RELIABILITY, "traffic_rules": TRAFFIC_RULES,
+                 "disclaimer": config.DISCLAIMER_DETECTION, "details": text,
+                 "model_probability": result.get("mean_prob_slick")}
     return {
+        "traffic": traffic,
+        "technical": technical,
         "level": level,
         "headline": headline,
         "text": text,

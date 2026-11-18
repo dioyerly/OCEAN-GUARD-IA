@@ -3,228 +3,113 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#04121f">
-  <title>OCEAN GUARD AI · Ocean Watch</title>
+  <title>OCEAN GUARD AI</title>
+  <link rel="icon" href="data:,">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css">
   <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-<div class="shell">
-
-  <aside class="rail">
-    <div class="brand">
-      <svg viewBox="0 0 48 48" class="logo" aria-hidden="true">
-        <defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2ee6d0"/><stop offset="1" stop-color="#1b7dff"/></linearGradient></defs>
-        <path d="M24 3 6 10v13c0 11 7.6 18.6 18 22 10.4-3.4 18-11 18-22V10L24 3z" fill="none" stroke="url(#lg)" stroke-width="2.6"/>
-        <path d="M11 27c4-5 7 5 13 0s9 5 13 0" fill="none" stroke="url(#lg)" stroke-width="2.6" stroke-linecap="round"/>
-        <path d="M11 20c4-5 7 5 13 0s9 5 13 0" fill="none" stroke="#2ee6d0" stroke-opacity=".45" stroke-width="2" stroke-linecap="round"/>
-      </svg>
-      <div><strong>OCEAN GUARD</strong><span>AI · monitoreo ambiental</span></div>
-    </div>
-
-    <nav class="tabs" aria-label="Secciones">
-      <button data-view="dashboard" class="active"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 12 18 6"/><circle cx="12" cy="12" r="2.4"/></svg><span>Ocean Watch</span></button>
-      <button data-view="analyze"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="m3 15 5-5 4 4 3-3 6 6"/><circle cx="16" cy="8.5" r="1.4"/></svg><span>Análisis</span></button>
-      <button data-view="map"><svg viewBox="0 0 24 24"><path d="M12 21s7-6.2 7-11.5A7 7 0 0 0 5 9.5C5 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg><span>Mapa</span></button>
-      <button data-view="simulate"><svg viewBox="0 0 24 24"><path d="M3 9h11a3 3 0 1 0-3-3"/><path d="M3 14h16a3 3 0 1 1-3 3"/><path d="M3 19h7"/></svg><span>Simulación</span></button>
-      <button data-view="history"><svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.4-5.7L4 8.5"/><path d="M4 4v4.5h4.5"/><path d="M12 8v4.5l3 1.8"/></svg><span>Historial</span></button>
-    </nav>
-
-    <div class="rail-foot">
-      <div id="model-badge" class="badge">modelo: consultando…</div>
-      <p>Demostración académica.<br>Detección asistida: requiere revisión humana.</p>
-    </div>
-  </aside>
-
-  <div class="content">
-    <div id="global-error" class="alert error" hidden></div>
-
-    <!-- OCEAN WATCH -->
-    <section id="view-dashboard" class="view active">
-      <div class="dash-head">
-        <span class="eyebrow"><i class="pulse"></i> Ocean Watch · situación actual</span>
-        <h1 id="dash-headline">Consultando…</h1>
-        <p id="dash-subline" class="muted"></p>
-        <p class="purpose">Esta pantalla sirve para <b>revisar cada imagen analizada</b>: elija un evento de la lista y vea en el mapa dónde marcó el modelo una posible mancha, con el clima y qué hacer. El modelo no confirma petróleo: usted revisa y decide.</p>
-      </div>
-      <div class="dash-grid">
-        <aside class="dash-list">
-          <h2>Eventos</h2>
-          <div id="dash-ribbon" class="dash-ribbon"></div>
-        </aside>
-        <div class="dash-center">
-          <div class="stage">
-            <div id="dash-map" class="map stage-map"></div>
-            <div id="dash-map-empty" class="map-empty" hidden></div>
-          </div>
-          <div class="legend-bar" id="dash-legend"></div>
-        </div>
-        <aside class="dash-detail" id="dash-focus"></aside>
-      </div>
-
-      <div class="strip" id="dash-cards"></div>
-
-      <div class="trio">
-        <div class="card">
-          <h3>Actividad reciente</h3>
-          <p class="muted small">Imágenes analizadas por día durante las últimas dos semanas.</p>
-          <div id="dash-activity"></div>
-        </div>
-        <div class="card">
-          <h3>¿Qué es real y qué es simulado?</h3>
-          <ul class="truth">
-            <li><i class="dot real"></i><div><b>Imagen, ubicación, clima y costa</b><span>Datos reales: el archivo analizado, Open-Meteo (clima) y Natural Earth (costa). Sin ubicación en el archivo, no se coloca en el mapa.</span></div></li>
-            <li><i class="dot est"></i><div><b>Zona marcada</b><span>Estimación del modelo. No confirma que sea petróleo.</span></div></li>
-            <li><i class="dot sim"></i><div><b>Desplazamiento</b><span>Simulación ilustrativa con supuestos sencillos. No es una predicción.</span></div></li>
-          </ul>
-        </div>
-        <div class="card">
-          <h3>Estado del modelo</h3>
-          <div id="dash-model"></div>
-        </div>
-      </div>
-      <p class="disclaimer" id="disclaimer"></p>
-    </section>
-
-    <!-- ANÁLISIS -->
-    <section id="view-analyze" class="view">
-      <header class="page-head"><span class="eyebrow">Análisis</span><h1>¿Qué muestra esta imagen?</h1>
-        <p>Cargue una imagen de satélite o pruebe con un ejemplo. El sistema marcará las zonas que podrían ser un derrame, consultará el clima y la costa, y le explicará todo en palabras sencillas.</p></header>
-      <div class="inputs">
-        <form id="form-upload" class="card">
-          <h3>Cargar su propia imagen</h3>
-          <p class="muted small">Sirve una imagen de radar satelital (la detección es automática) o cualquier otra: foto aérea, de dron, de un barco o una captura. En ese caso <b>pinte usted la mancha</b> y el sistema calculará superficie, hacia dónde podría ir y qué hacer.</p>
-          <label>Archivo (PNG, JPG o TIFF, máx. 25 MB)
-            <input type="file" name="file" id="upload-file" accept=".png,.jpg,.jpeg,.tif,.tiff" required>
-          </label>
-          <div id="mark-box" hidden>
-            <div class="mark-tools">
-              <span class="muted small">Pincel</span>
-              <input type="range" id="brush" min="4" max="70" value="20" aria-label="Tamaño del pincel">
-              <button type="button" id="mk-paint" class="secondary small-btn on">Pintar</button>
-              <button type="button" id="mk-erase" class="secondary small-btn">Borrar</button>
-              <button type="button" id="mk-clear" class="secondary small-btn">Limpiar</button>
-            </div>
-            <div class="mark-stage"><canvas id="mk-img"></canvas><canvas id="mk-draw"></canvas></div>
-            <p class="muted small" id="mark-note">Pinte sobre la imagen la zona que quiere analizar. Si es de radar y no pinta nada, el modelo la detecta solo.</p>
-          </div>
-          <details open>
-            <summary>¿Dónde está y qué tan grande es? (opcional)</summary>
-            <p class="muted small">Sin ubicación igualmente verá un escenario de deriva sobre la imagen. Con ubicación se consulta el clima real y la costa. Si la foto trae GPS, se usa solo.</p>
-            <div class="row">
-              <label>Buscar un lugar <input type="text" data-place-q placeholder="ej. Ciudad del Carmen"></label>
-              <button type="button" class="secondary small-btn" data-place-go style="align-self:end;margin-bottom:.65rem">Buscar</button>
-            </div>
-            <select data-place-results hidden aria-label="Resultados de la búsqueda"></select>
-            <p class="muted small" data-place-note></p>
-            <div class="row">
-              <label>Latitud <input type="number" name="lat" data-lat step="any" min="-90" max="90" placeholder="ej. 19.43"></label>
-              <label>Longitud <input type="number" name="lon" data-lon step="any" min="-180" max="180" placeholder="ej. -92.10"></label>
-            </div>
-            <label>Ancho aproximado de lo que muestra la imagen (km)
-              <input type="number" name="scene_km" step="any" min="0.05" max="5000" placeholder="ej. 8 (si no lo sabe, se supone y se avisa)">
-            </label>
-          </details>
-          <button type="submit" class="primary">Analizar imagen</button>
-        </form>
-        <form id="form-example" class="card">
-          <h3>Probar con un ejemplo real</h3>
-          <p class="muted small">Imágenes Sentinel-1 del conjunto de validación del dataset (Golfo de México, 2020). Incluyen ubicación real y permiten comparar con el análisis de un experto. Para el clima se usa el viento real de esa fecha. No se usan imágenes de test.</p>
-          <label>Ejemplo <select name="sample" id="example-select"></select></label>
-          <button type="submit" class="primary">Analizar ejemplo</button>
-        </form>
-      </div>
-      <div id="analyze-status" class="alert info" hidden></div>
-      <div id="analyze-result"></div>
-    </section>
-
-    <!-- MAPA -->
-    <section id="view-map" class="view">
-      <header class="page-head"><span class="eyebrow">Mapa</span><h1>Dónde se detectaron las zonas sospechosas</h1>
-        <p>Vista satelital con costas y referencias. Seleccione un evento para ver qué se encontró y dónde.</p></header>
-      <div class="map-layout">
-        <div class="mapcard tall">
-          <div id="map" class="map"></div>
-          <div class="layer-toggles">
-            <label><input type="checkbox" id="lyr-slick" checked> Zonas marcadas</label>
-            <label><input type="checkbox" id="lyr-foot" checked> Contorno de la imagen</label>
-            <label><input type="checkbox" id="lyr-sim" checked> Simulación (si existe)</label>
-          </div>
-        </div>
-        <aside class="side">
-          <div class="card" id="map-detail"><p class="muted">Seleccione un evento en el mapa o en la lista.</p></div>
-          <h3>Eventos con ubicación</h3>
-          <div id="map-list" class="event-list"></div>
-        </aside>
-      </div>
-    </section>
-
-    <!-- SIMULACIÓN -->
-    <section id="view-simulate" class="view">
-      <header class="page-head"><span class="eyebrow">Simulación</span><h1>¿Hacia dónde podría desplazarse?</h1>
-        <p>Elija un evento. Por defecto se usa el clima real del lugar; también puede fijar un viento a mano. Verá hacia dónde podría moverse la mancha, qué podría afectar y qué se puede hacer.</p></header>
-      <div class="sim-banner" role="note"><b>SIMULACIÓN ILUSTRATIVA.</b> Usa un modelo sencillo de deriva por viento y corrientes, difusión y degradación. No incluye oleaje, mareas ni la química real del petróleo, y no es una predicción.</div>
-      <div class="sim-layout">
-        <form id="form-sim" class="card controls">
-          <h3>Condiciones</h3>
-          <label>Evento <select name="analysis" id="sim-analysis"></select></label>
-          <div class="modes" role="radiogroup" aria-label="Origen de las condiciones">
-            <label class="mode"><input type="radio" name="mode" value="weather" checked><span><b>Clima real</b><small>Viento (y corrientes si hay) del lugar y la fecha del evento</small></span></label>
-            <label class="mode"><input type="radio" name="mode" value="manual"><span><b>Manual</b><small>Usted elige el viento</small></span></label>
-          </div>
-          <div id="manual-fields" hidden>
-            <label>Fuerza del viento
-              <select name="wind_speed_ms">
-                <option value="3">Suave (≈ 11 km/h)</option>
-                <option value="8" selected>Moderado (≈ 29 km/h)</option>
-                <option value="15">Fuerte (≈ 54 km/h)</option>
-                <option value="22">Muy fuerte (≈ 79 km/h)</option>
-              </select>
-            </label>
-            <label>El viento sopla desde el
-              <select name="wind_from_deg" id="sim-dir">
-                <option value="0">Norte</option><option value="45">Noreste</option><option value="90" selected>Este</option>
-                <option value="135">Sureste</option><option value="180">Sur</option><option value="225">Suroeste</option>
-                <option value="270">Oeste</option><option value="315">Noroeste</option>
-              </select>
-            </label>
-            <div class="compass" id="sim-compass" aria-hidden="true"></div>
-          </div>
-          <label>Horas a simular
-            <select name="hours"><option value="6">6 horas</option><option value="12" selected>12 horas</option><option value="24">24 horas</option><option value="48">48 horas</option></select>
-          </label>
-          <button type="submit" class="primary">Simular desplazamiento</button>
-          <p class="muted small">El aceite se mueve en el sentido hacia el que sopla el viento (viento del este → hacia el oeste).</p>
-        </form>
-        <div class="sim-main">
-          <div class="mapcard"><div id="sim-map" class="map big"></div><div id="sim-map-img" class="map big" hidden></div>
-            <div class="map-actions" id="sim-fit" hidden>
-              <button type="button" class="secondary small-btn" id="fit-event">Centrar en el evento</button>
-              <button type="button" class="secondary small-btn" id="fit-domain">Ver toda la zona simulada</button>
-              <button type="button" class="secondary small-btn" id="fit-coast" hidden>Incluir la costa</button>
-            </div></div>
-          <div id="sim-controls" class="player" hidden>
-            <button type="button" id="sim-play" class="primary round" aria-label="Reproducir">▶ Reproducir</button>
-            <div class="player-track">
-              <input type="range" id="sim-frame" min="0" max="0" value="0" aria-label="Instante de la simulación">
-              <div class="stage-chips" id="sim-stages"></div>
-            </div>
-            <div class="player-time"><span id="sim-hour">0</span> h</div>
-          </div>
-          <div id="sim-summary" class="card story"><p class="muted">Elija un evento con ubicación conocida y pulse «Simular desplazamiento».</p></div>
-          <div id="sim-context"></div>
-        </div>
-      </div>
-    </section>
-
-    <!-- HISTORIAL -->
-    <section id="view-history" class="view">
-      <header class="page-head"><span class="eyebrow">Historial</span><h1>Análisis anteriores</h1>
-        <p>Cada análisis queda guardado con su imagen, resultado e informe.</p></header>
-      <div id="history-table" class="history-grid"></div>
-    </section>
+<header class="top">
+  <div class="wrap top-in">
+    <strong class="brand">OCEAN GUARD AI</strong>
+    <span class="muted">Detección asistida de posibles derrames de petróleo</span>
   </div>
-</div>
+</header>
+
+<main class="wrap">
+  <ol class="steps" aria-label="Pasos">
+    <li><button type="button" data-step="1" class="step active"><b>1</b> Subir imagen</button></li>
+    <li><button type="button" data-step="2" class="step" disabled><b>2</b> Resultado</button></li>
+    <li><button type="button" data-step="3" class="step" disabled><b>3</b> Hacia dónde va</button></li>
+  </ol>
+
+  <div id="global-error" class="alert error" role="alert" hidden></div>
+
+  <!-- PASO 1 -->
+  <section id="step-1" class="panel active">
+    <h1>Suba una imagen de radar satelital</h1>
+    <p class="lead">El sistema revisa la imagen y le avisa si ve algo que podría ser un derrame de petróleo. Es una sugerencia: siempre debe revisarla una persona.</p>
+    <form id="form-upload" class="card">
+      <label>Imagen de radar (Sentinel-1, en blanco y negro · PNG, JPG o TIFF · máx. 25 MB)
+        <input type="file" name="file" accept=".png,.jpg,.jpeg,.tif,.tiff" required>
+      </label>
+      <details>
+        <summary>¿Sabe dónde está? (opcional)</summary>
+        <p class="muted">Con la ubicación se puede consultar el viento real y la costa más cercana. Si la foto trae GPS, se usa sola.</p>
+        <div class="row">
+          <label>Buscar un lugar <input type="text" data-place-q placeholder="ej. Ciudad del Carmen"></label>
+          <button type="button" class="ghost" data-place-go>Buscar</button>
+        </div>
+        <select data-place-results hidden aria-label="Resultados de la búsqueda"></select>
+        <p class="muted" data-place-note></p>
+        <div class="row">
+          <label>Latitud <input type="number" name="lat" data-lat step="any" min="-90" max="90" placeholder="19.43"></label>
+          <label>Longitud <input type="number" name="lon" data-lon step="any" min="-180" max="180" placeholder="-92.10"></label>
+        </div>
+        <label>Ancho aproximado de lo que muestra la imagen (km)
+          <input type="number" name="scene_km" step="any" min="0.05" max="5000" placeholder="si no lo sabe, se supone y se avisa">
+        </label>
+      </details>
+      <button type="submit" class="primary">Analizar imagen</button>
+    </form>
+
+    <form id="form-example" class="card">
+      <h2>¿No tiene una imagen? Pruebe con un ejemplo</h2>
+      <p class="muted">Imágenes reales de radar del conjunto de validación del dataset (Golfo de México, 2020).</p>
+      <label>Ejemplo <select name="sample" id="example-select"></select></label>
+      <button type="submit" class="secondary">Analizar ejemplo</button>
+    </form>
+    <p id="analyze-status" class="alert info" hidden></p>
+  </section>
+
+  <!-- PASO 2 -->
+  <section id="step-2" class="panel">
+    <div id="result"></div>
+  </section>
+
+  <!-- PASO 3 -->
+  <section id="step-3" class="panel">
+    <h1>¿Hacia dónde va la mancha?</h1>
+    <div id="loc-box"></div>
+    <form id="form-sim" class="card">
+      <div id="sim-mode-box" class="modes">
+        <label class="mode"><input type="radio" name="mode" value="weather" checked> <span><b>Viento real</b> del lugar y la fecha</span></label>
+        <label class="mode"><input type="radio" name="mode" value="manual"> <span><b>Yo elijo el viento</b></span></label>
+      </div>
+      <div id="manual-fields" hidden>
+        <p id="manual-question" class="q">¿Y si el viento viene del…?</p>
+        <div class="row">
+          <label>Dirección del viento
+            <select name="wind_from_deg">
+              <option value="0">Norte</option><option value="45">Noreste</option><option value="90" selected>Este</option>
+              <option value="135">Sureste</option><option value="180">Sur</option><option value="225">Suroeste</option>
+              <option value="270">Oeste</option><option value="315">Noroeste</option>
+            </select>
+          </label>
+          <label>Fuerza
+            <select name="wind_speed_ms">
+              <option value="3">Suave</option><option value="8" selected>Moderado</option>
+              <option value="15">Fuerte</option><option value="22">Muy fuerte</option>
+            </select>
+          </label>
+        </div>
+      </div>
+      <label>Tiempo a simular
+        <select name="hours"><option value="12">12 horas</option><option value="24">24 horas</option><option value="48" selected>48 horas</option></select>
+      </label>
+      <button type="submit" class="primary">Ver hacia dónde va</button>
+    </form>
+    <div id="sim-result"></div>
+  </section>
+
+  <section class="history">
+    <h2>Análisis anteriores</h2>
+    <ul id="history-list" class="hist"></ul>
+    <button type="button" id="history-more" class="ghost" hidden>Ver más</button>
+  </section>
+
+  <footer class="foot muted">Demostración académica. Detección asistida: el sistema sugiere, no confirma.</footer>
+</main>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
 <script src="/static/app.js"></script>

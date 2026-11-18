@@ -35,6 +35,9 @@ MIN_COMPONENT_PX = 100
 BN_RECAL = PLATFORM_DIR / "assets" / "bn_decoder_recal.pt"  # ver tools/recalibrate_bn.py
 DEFAULT_PIXEL_M = 10.0  # resolución supuesta si la imagen no trae georreferencia
 
+MSG_NOT_RADAR = ("Esta imagen no parece de radar satelital (Sentinel-1, en blanco y negro). "
+                 "Sube una imagen de radar para analizarla.")
+
 ALLOWED_EXTENSIONS = {".png", ".jpg", ".jpeg", ".tif", ".tiff"}
 
 DISCLAIMER_DETECTION = (
