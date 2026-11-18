@@ -91,7 +91,11 @@
         <p>Cargue una imagen de radar satelital para ver si hay una posible mancha.</p></header>
       <div class="inputs">
         <form id="form-upload" class="card">
-          <h3>Cargar su propia imagen</h3>
+          <div class="mode-tabs" role="group" aria-label="Origen de la imagen">
+            <button type="button" class="secondary small-btn on" data-mode="upload">Cargar su propia imagen</button>
+            <button type="button" class="secondary small-btn" data-mode="example">Ver un ejemplo</button>
+          </div>
+          <div id="upload-box">
           <p class="muted small">Sirve una imagen de radar satelital (Sentinel-1, en blanco y negro): la detección es automática.</p>
           <label>Archivo (PNG, JPG o TIFF, máx. 25 MB)
             <input type="file" name="file" id="upload-file" accept=".png,.jpg,.jpeg,.tif,.tiff" required>
@@ -113,7 +117,12 @@
               <input type="number" name="scene_km" step="any" min="0.05" max="5000" placeholder="ej. 8 (si no lo sabe, se supone y se avisa)">
             </label>
           </details>
-          <button type="submit" class="primary">Analizar imagen</button>
+          </div>
+          <div id="example-box" hidden>
+            <label>Ejemplo <select id="example-select"></select></label>
+            <p class="muted small">Elija uno con derrame o uno sin derrame (mar en calma) para ver cómo se ve cada resultado.</p>
+          </div>
+          <button type="submit" class="primary">Analizar</button>
         </form>
       </div>
       <div id="analyze-status" class="alert info" hidden></div>

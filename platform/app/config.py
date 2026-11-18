@@ -56,7 +56,7 @@ VAL_RELIABILITY = {
     "precision": 0.873,   # de cada 100 píxeles marcados, ~87 eran derrame de referencia
     "recall": 0.720,      # de cada 100 píxeles de derrame de referencia, el modelo marcó ~72
     "dice": 0.789,
-    "note": ("Las 43 imágenes de validación contienen derrame: no se ha podido medir cuántas "
-             "falsas alarmas produce el modelo en imágenes sin derrame."),
+    "note": ("En pruebas con imágenes de otras regiones sin derrame, el sistema dio falsa alarma "
+             "en 1 de cada 4 o 5. Revise siempre el resultado."),
 }
 DATASET_REGION = "Golfo de México (región de Cantarell, según la documentación del dataset)"

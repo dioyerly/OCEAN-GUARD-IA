@@ -96,3 +96,7 @@ Los ejemplos usan esas coordenadas y el satélite/fecha del CSV del dataset (Sen
 ```
 
 Usan un directorio temporal y solo leen el split de validación. Algunas pruebas consultan Open-Meteo y se omiten sin conexión.
+
+## Atribución de los ejemplos incluidos
+
+Los ejemplos de `static/examples/` se redistribuyen con atribución: los de «con derrame» son teselas del *Oil Segmentation Dataset (800x600)* de J.R.M. Garcia (INPE), DOI 10.5281/zenodo.22214144, licencia CC BY 4.0; los de «sin derrame» son recortes de *CSIRO Sentinel-1 SAR image dataset of oil- and non-oil features for machine learning* (Blondeau-Patissier, Schroeder, Diakogiannis y Li), DOI 10.25919/4v55-dn16, licencia CC BY-SA 4.0. Se usan solo para mostrar cómo se ve la pantalla, no para medir precisión.

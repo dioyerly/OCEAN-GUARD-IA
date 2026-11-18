@@ -345,7 +345,7 @@ async function selectDashEvent(id, fly) {
       <div class="gauge-label" style="color:${RISK_COLOR[c.risk.level]}">Atención: ${esc(c.risk.label)}<small>indicador orientativo</small></div>
       ${wind}${coastTxt}
       <ul class="reasons">${c.risk.reasons.slice(0, 3).map((r) => `<li>${esc(r)}</li>`).join("")}</ul>
-      <div class="actions"><button class="primary small-btn" onclick="openAnalysis('${esc(a.id)}')">Qué hacer y por qué</button>
+    <div class="actions"><button class="primary small-btn" onclick="openAnalysis('${esc(a.id)}')">Qué hacer y por qué</button>
         <button class="secondary small-btn" onclick="simulateFrom('${esc(a.id)}')">Simular</button></div>`;
   } catch (err) {
     if (state.dashSel === id) box.innerHTML = `${head}<div class="notice">No se pudo consultar el contexto: ${esc(err.message)}</div>`;
@@ -373,7 +373,7 @@ function renderAnalysis(a) {
   const ctxBlock = (a.bounds && a.slick_pct > 0
     ? `<details class="card ctx-card fold"><summary><h2>Qué podría verse afectado y qué hacer</h2></summary><div id="ctx-box"><p class="skeleton">Consultando clima y costa reales…</p></div></details>`
     : "") + (a.slick_pct > 0 ? scenarioCard(a) : "");
-  const locBlock = !a.bounds ? locationCard() : "";
+  const locBlock = !a.bounds && a.slick_pct > 0 ? locationCard() : "";
   return `
     ${summaryStrip(s)}
     <div class="verdict ${esc(s.level)}">
@@ -413,10 +413,11 @@ function renderAnalysis(a) {
       <dl class="kv"><dt>Tamaño</dt><dd>${a.width} × ${a.height} px</dd><dt>Umbral de detección</dt><dd>${fmt(a.threshold, 2)}</dd>
         <dt>Identificador</dt><dd>${esc(a.id)}</dd><dt>Origen</dt><dd>${esc(a.source)}</dd></dl>
     </details>
+    ${a.slick_pct > 0 ? "" : `<p class="muted">Sin derrame detectado: no hay trayectoria que simular.</p>`}
     <p class="disclaimer">Detección asistida por IA: requiere validación humana. No sustituye vigilancia oficial.</p>
     <div class="actions">
       <a href="/api/analyses/${esc(a.id)}/report" target="_blank" rel="noopener"><button class="secondary" type="button">Abrir informe</button></a>
-      <button class="secondary" type="button" onclick="simulateFrom('${esc(a.id)}')" ${a.slick_pct > 0 ? "" : "disabled"}>Simular desplazamiento</button>
+      ${a.slick_pct > 0 ? `<button class="secondary" type="button" onclick="simulateFrom('${esc(a.id)}')">Simular desplazamiento</button>` : ""}
       <button class="secondary" type="button" onclick="showOnMap('${esc(a.id)}')" ${a.bounds ? "" : "disabled"}>Ver en el mapa</button>
     </div>`;
 }
@@ -842,6 +843,17 @@ async function deleteAnalysis(id) {
 }
 
 
+// ---------- ejemplos (con y sin derrame) ----------
+async function loadExamples() {
+  const sel = document.getElementById("example-select");
+  try {
+    const g = (await api("/api/examples")).groups;
+    const opt = (i, txt) => `<option value="${esc(i.sample_id)}">${esc(txt)}</option>`;
+    sel.innerHTML = `<optgroup label="Con derrame">${g.con.map((i) => opt(i, i.sample_id + (i.scene && i.scene.date ? " · " + i.scene.date : ""))).join("")}</optgroup>` +
+      `<optgroup label="Sin derrame">${g.sin.map((i) => opt(i, `${i.label} · ${i.region}`)).join("")}</optgroup>`;
+  } catch (_) { sel.innerHTML = ""; }
+}
+
 // ---------- buscar lugar (nombre -> coordenadas) ----------
 function wirePlaceSearch(root) {
   const q = root.querySelector("[data-place-q]"), go = root.querySelector("[data-place-go]");
@@ -950,6 +962,17 @@ document.addEventListener("DOMContentLoaded", () => {
     event.preventDefault();
     clearError();
     const f = event.target;
+    if (state.exMode) {  // modo «Ver un ejemplo»: mismo botón, otra acción
+      const id = document.getElementById("example-select").value;
+      if (!id) { showError("Seleccione un ejemplo."); return; }
+      const eb = f.querySelector("button[type=submit]");
+      eb.disabled = true;
+      setStatus("Analizando el ejemplo… (la primera vez puede tardar unos segundos)");
+      try { showAnalysis(await api(`/api/examples/${encodeURIComponent(id)}/analyze`, { method: "POST" })); }
+      catch (err) { showError(err.message); }
+      finally { eb.disabled = false; setStatus(""); }
+      return;
+    }
     const fd = new FormData();
     fd.append("file", f.elements.file.files[0]);
     if (f.elements.lat.value && f.elements.lon.value) {
@@ -967,6 +990,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
   wirePlaceSearch(document.getElementById("form-upload"));
+  document.querySelectorAll(".mode-tabs button").forEach((b) => b.addEventListener("click", () => {
+    state.exMode = b.dataset.mode === "example";
+    document.querySelectorAll(".mode-tabs button").forEach((x) => x.classList.toggle("on", x === b));
+    document.getElementById("upload-box").hidden = state.exMode;
+    document.getElementById("example-box").hidden = !state.exMode;
+    document.getElementById("upload-file").required = !state.exMode;
+  }));
+  loadExamples();
   const form = document.getElementById("form-sim");
   form.addEventListener("submit", runSimulation);
   form.querySelectorAll("input[name=mode]").forEach((r) => r.addEventListener("change", () => {

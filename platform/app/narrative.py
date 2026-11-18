@@ -74,8 +74,9 @@ def confidence(result: dict) -> dict:
     else:
         level, label = "low", "Baja"
     rel = config.VAL_RELIABILITY
-    text = (f"En pruebas, de cada 100 zonas que marca, unas {round(rel['precision'] * 100)} son derrames reales. "
-            "No se midieron falsas alarmas.")
+    text = (
+        "En pruebas con imágenes de otras regiones sin derrame, el sistema dio falsa alarma"
+        " en 1 de cada 4 o 5. Revise siempre el resultado.")
     return {"label": label, "level": level, "text": text}
 
 

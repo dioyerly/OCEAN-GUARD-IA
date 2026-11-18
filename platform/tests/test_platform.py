@@ -163,7 +163,7 @@ def test_plain_language_summary_and_honest_location():
     assert sm["location"]["state"] == "georef" and "Cantarell" not in sm["location"]["text"]  # sin texto del dataset
     assert "Sentinel-1" in sm["acquired"]
     assert sm["confidence"]["label"] in {"Alta", "Media", "Baja", "—"}
-    assert "falsas alarmas" in sm["confidence"]["text"] or sm["level"] == "none"
+    assert "falsa alarma" in sm["confidence"]["text"] or sm["level"] == "none"
     slick = client.get(f"/api/analyses/{a['id']}/file/slick")
     assert slick.status_code == 200 and slick.headers["content-type"] == "image/png"
     assert Image.open(io.BytesIO(slick.content)).mode == "RGBA"
@@ -425,3 +425,46 @@ def test_api_response_includes_new_simple_fields():
     assert 0 <= lo <= hi
     assert simple_["severity"]["level"] in ("low", "medium", "high") and simple_["severity"]["why"]
     assert simple_["coast"] is not None and simple_["coast"]["distance_km"] >= 0
+
+
+# ---------- ejemplos con y sin derrame (autosuficientes) y filtro gris-en-RGB ----------
+def test_examples_groups_and_static_files():
+    g = client.get("/api/examples").json()["groups"]
+    assert 1 <= len(g["con"]) <= 5 and len(g["sin"]) == 3
+    assert len({e["region"] for e in g["sin"]}) == 3 and all(e["label"].startswith("Ejemplo sin derrame") for e in g["sin"])
+    man = (config.PLATFORM_DIR / "static" / "examples")
+    assert all((man / f).exists() for f in ("manifest.json", "sin_ADR.jpg", "sin_JAV.jpg", "sin_VEN.jpg"))
+
+
+def test_example_with_spill_and_example_without_spill():
+    g = client.get("/api/examples").json()["groups"]
+    con = client.post(f"/api/examples/{g['con'][0]['sample_id']}/analyze").json()
+    assert con["slick_pct"] > 0 and con["summary"]["traffic"]["color"] in ("yellow", "red")
+    for e in g["sin"]:
+        a = client.post(f"/api/examples/{e['sample_id']}/analyze").json()
+        assert a["slick_pct"] == 0 and a["summary"]["traffic"]["color"] == "green"
+        assert a["summary"]["traffic"]["label"] == "No se detecta derrame"
+        sim = client.post(f"/api/analyses/{a['id']}/simulate", json={"mode": "manual", "wind_speed_ms": 8, "wind_from_deg": 90, "hours": 12})
+        assert sim.status_code == 400  # sin derrame no hay nada que simular
+
+
+def test_gray_jpeg_with_equal_channels_is_accepted_but_real_color_is_rejected():
+    gray = Image.open(config.PLATFORM_DIR / "static" / "examples" / "sin_ADR.jpg").convert("RGB")  # JPEG gris repetido en 3 canales
+    arr = _np.asarray(gray)
+    assert (arr[..., 0] == arr[..., 1]).all() and (arr[..., 0] == arr[..., 2]).all()
+    buf = io.BytesIO()
+    gray.save(buf, format="JPEG")
+    ok = client.post("/api/analyze", files={"file": ("csiro.jpg", buf.getvalue(), "image/jpeg")})
+    assert ok.status_code == 200, ok.text
+    col = _np.zeros((400, 400, 3), dtype=_np.uint8)
+    col[..., 0], col[..., 1], col[..., 2] = 40, 110, 190
+    cb = io.BytesIO()
+    Image.fromarray(col).save(cb, format="JPEG")
+    bad = client.post("/api/analyze", files={"file": ("foto.jpg", cb.getvalue(), "image/jpeg")})
+    assert bad.status_code == 422 and "no parece de radar" in bad.json()["detail"]
+
+
+def test_confidence_text_mentions_false_alarm_rate():
+    a = client.post(f"/api/examples/{client.get('/api/examples').json()['groups']['con'][0]['sample_id']}/analyze").json()
+    txt = a["summary"]["confidence"]["text"]
+    assert "1 de cada 4 o 5" in txt and "unas 87" not in txt and "No se midieron" not in txt

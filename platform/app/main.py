@@ -361,20 +361,49 @@ def geocode(q: str):
     return {"items": items}
 
 
+EXAMPLES_DIR = STATIC / "examples"
+SIN_LABEL = "Ejemplo sin derrame (mar en calma)"
+
+
+def _manifest() -> dict:
+    """Ejemplos incluidos en static/examples (no dependen de carpetas externas)."""
+    p = EXAMPLES_DIR / "manifest.json"
+    return json.loads(p.read_text(encoding="utf-8")) if p.exists() else {"con": [], "sin": []}
+
+
 @app.get("/api/examples")
 def examples():
+    man = _manifest()
+    groups = {
+        "con": [{"sample_id": e["id"], "scene": e["scene"]} for e in man["con"]],
+        "sin": [{"sample_id": e["id"], "label": SIN_LABEL, "region": e["region"]} for e in man["sin"]],
+    }
     try:
         samples = unet_data.read_split(config.DATASET_ROOT, "val")
-    except Exception as exc:
-        raise HTTPException(503, f"Dataset no disponible: {exc}")
-    return {"split": "val", "count": len(samples), "items": [
-        {"sample_id": s.sample_id, "scene": scene_meta.for_sample(s.sample_id)} for s in samples
-    ]}
+        items = [{"sample_id": s.sample_id, "scene": scene_meta.for_sample(s.sample_id)} for s in samples]
+    except Exception:
+        items = groups["con"]  # sin el dataset local, se usan los ejemplos incluidos
+    return {"split": "val", "count": len(items), "items": items, "groups": groups}
 
 
 @app.post("/api/examples/{sample_id}/analyze")
 def analyze_example(sample_id: str):
-    """Ejemplo del split val con su máscara de referencia (solo lectura del dataset)."""
+    """Ejemplo con derrame (validación, con su máscara de referencia) o sin derrame (CSIRO, mar en calma)."""
+    man = _manifest()
+    sin = next((e for e in man["sin"] if e["id"] == sample_id), None)
+    if sin:
+        rgb = np.asarray(Image.open(EXAMPLES_DIR / sin["file"]).convert("RGB"))
+        return _run_pipeline(rgb, source="ejemplo", filename=f"{SIN_LABEL} · {sin['region']}",
+                             bounds=None, location_kind="no indicada")
+    con = next((e for e in man["con"] if e["id"] == sample_id), None)
+    if con:
+        rgb = np.asarray(Image.open(EXAMPLES_DIR / con["file"]).convert("RGB"))
+        ref = unet_data.load_mask_binary(EXAMPLES_DIR / con["mask"]).astype(bool)
+        bounds = con["bounds"]
+        return _run_pipeline(
+            rgb, source="ejemplo", filename=f"{sample_id}.png", bounds=bounds,
+            location_kind="georreferencia del archivo (GeoTIFF EPSG:4326)" if bounds else "no indicada",
+            reference_mask=ref, extra_result={"scene": con["scene"]})
     try:
         samples = unet_data.read_split(config.DATASET_ROOT, "val")
     except Exception as exc:

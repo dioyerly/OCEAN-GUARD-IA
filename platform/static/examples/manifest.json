@@ -1,0 +1,134 @@
+{
+ "con": [
+  {
+   "id": "IMG_12_TILE_004",
+   "file": "con_IMG_12_TILE_004.png",
+   "mask": "con_IMG_12_TILE_004_mask.png",
+   "bounds": [
+    [
+     19.308941527978263,
+     -92.05507770443454
+    ],
+    [
+     19.416739362072605,
+     -91.91134725897541
+    ]
+   ],
+   "scene": {
+    "satellite": "Sentinel-1B",
+    "date": "2020-04-25",
+    "time_utc": "12:00",
+    "mode": "IW"
+   },
+   "model_px": 94395
+  },
+  {
+   "id": "IMG_12_TILE_013",
+   "file": "con_IMG_12_TILE_013.png",
+   "mask": "con_IMG_12_TILE_013_mask.png",
+   "bounds": [
+    [
+     19.533520349008143,
+     -92.05507770443454
+    ],
+    [
+     19.641318183102484,
+     -91.91134725897541
+    ]
+   ],
+   "scene": {
+    "satellite": "Sentinel-1B",
+    "date": "2020-04-25",
+    "time_utc": "12:00",
+    "mode": "IW"
+   },
+   "model_px": 53169
+  },
+  {
+   "id": "IMG_13_TILE_007",
+   "file": "con_IMG_13_TILE_007.png",
+   "mask": "con_IMG_13_TILE_007_mask.png",
+   "bounds": [
+    [
+     19.26421766228687,
+     -92.27663784099892
+    ],
+    [
+     19.372015496381213,
+     -92.13290739553979
+    ]
+   ],
+   "scene": {
+    "satellite": "Sentinel-1B",
+    "date": "2020-05-19",
+    "time_utc": "12:00",
+    "mode": "IW"
+   },
+   "model_px": 21663
+  },
+  {
+   "id": "IMG_15_TILE_001",
+   "file": "con_IMG_15_TILE_001.png",
+   "mask": "con_IMG_15_TILE_001_mask.png",
+   "bounds": [
+    [
+     19.33297748540759,
+     -92.12935974557911
+    ],
+    [
+     19.44077531950193,
+     -91.98562930011998
+    ]
+   ],
+   "scene": {
+    "satellite": "Sentinel-1B",
+    "date": "2020-06-24",
+    "time_utc": "12:00",
+    "mode": "IW"
+   },
+   "model_px": 283
+  },
+  {
+   "id": "IMG_19_TILE_009",
+   "file": "con_IMG_19_TILE_009.png",
+   "mask": "con_IMG_19_TILE_009_mask.png",
+   "bounds": [
+    [
+     19.365531080199954,
+     -92.16229591264036
+    ],
+    [
+     19.473328914294296,
+     -92.01856546718123
+    ]
+   ],
+   "scene": {
+    "satellite": "Sentinel-1B",
+    "date": "2020-07-21",
+    "time_utc": "00:15",
+    "mode": "IW"
+   },
+   "model_px": 27615
+  }
+ ],
+ "sin": [
+  {
+   "id": "SIN_ADR",
+   "file": "sin_ADR.jpg",
+   "region": "ADR",
+   "model_px": 0
+  },
+  {
+   "id": "SIN_JAV",
+   "file": "sin_JAV.jpg",
+   "region": "JAV",
+   "model_px": 0
+  },
+  {
+   "id": "SIN_VEN",
+   "file": "sin_VEN.jpg",
+   "region": "VEN",
+   "model_px": 0
+  }
+ ]
+}
