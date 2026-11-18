@@ -431,7 +431,7 @@ def test_api_response_includes_new_simple_fields():
 def test_examples_groups_and_static_files():
     g = client.get("/api/examples").json()["groups"]
     assert len(g["con"]) >= 5 and len(g["sin"]) >= 3   # los ejemplos anteriores se conservan (y hay mas)
-    assert len({e["region"] for e in g["sin"]}) >= 3 and all(e["label"].startswith("Ejemplo sin derrame") for e in g["sin"])
+    assert all(e["etiqueta"].startswith("Sin derrame ") for e in g["sin"]) and all(e["etiqueta"].startswith("Con derrame ") for e in g["con"])
     man = (config.PLATFORM_DIR / "static" / "examples")
     assert all((man / f).exists() for f in ("manifest.json", "sin_ADR.jpg", "sin_JAV.jpg", "sin_VEN.jpg"))
 
@@ -526,8 +526,37 @@ def test_manifest_has_enough_light_examples_with_source():
 def test_every_example_analyzes_and_groups_expose_source():
     g = client.get("/api/examples").json()["groups"]
     assert len(g["con"]) >= 15 and len(g["sin"]) >= 13
-    assert all(i["fuente"] for i in g["con"] + g["sin"])
+    assert all(i["etiqueta"] for i in g["con"] + g["sin"])
     for i in g["con"] + g["sin"]:
         r = client.post(f"/api/examples/{i['sample_id']}/analyze")
         assert r.status_code == 200, (i["sample_id"], r.text)
         assert r.json()["source"] == "ejemplo"
+
+
+# ---------- etiquetas neutras: ningun nombre de dataset, region ni archivo visible ----------
+import re as _re  # noqa: E402
+
+_PROHIBIDO = _re.compile(r"\bSOS\b|CSIRO|dataset|fuente|INPE|\b(COR|EGY|GIB|NOR|ADR|JAV|VEN|GBR)\b|IMG_\d|SIN_|TILE|\.(png|jpg|tiff?)\b", _re.I)
+
+
+def test_example_labels_are_neutral_everywhere_visible():
+    g = client.get("/api/examples").json()["groups"]
+    blob = _json.dumps(g, ensure_ascii=False)
+    labels = [i["etiqueta"] for i in g["con"] + g["sin"]]
+    assert labels == [f"Con derrame {k}" for k in range(1, len(g["con"]) + 1)] + [f"Sin derrame {k}" for k in range(1, len(g["sin"]) + 1)]
+    for i in g["con"] + g["sin"]:
+        assert set(i) == {"sample_id", "etiqueta"}                       # el origen no sale por la API de ejemplos
+        assert not _PROHIBIDO.search(i["etiqueta"]), i["etiqueta"]
+    assert not any(w in blob for w in ("fuente", "zona", "region", "CSIRO", "Cantarell"))
+    for i in (g["con"][0], g["con"][-1], g["sin"][0], g["sin"][-1]):
+        a = client.post(f"/api/examples/{i['sample_id']}/analyze").json()
+        assert a["filename"] == i["etiqueta"] and not _PROHIBIDO.search(a["filename"])
+        assert not _PROHIBIDO.search(a["summary"]["headline"] + a["summary"]["text"] + a["summary"]["traffic"]["phrase"])
+        rep_html = client.get(f"/api/analyses/{a['id']}/report").text
+        assert "dataset" not in rep_html.lower() and "TILE" not in rep_html and "CSIRO" not in rep_html
+    nombres = [x["filename"] for x in client.get("/api/analyses").json()["items"] if x["source"] == "ejemplo"]
+    assert nombres and all(re_ok(n) for n in nombres)
+
+
+def re_ok(name: str) -> bool:
+    return bool(_re.fullmatch(r"(Con derrame \d+|Sin derrame \d+|Ejemplo)", name))

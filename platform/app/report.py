@@ -84,7 +84,7 @@ def build_report(a: dict, folder: Path, model_info: dict | None, sim: dict | Non
     ref = a.get("reference")
     ref_txt = ""
     if ref:
-        ref_txt = (f"<h2>Comparación con la referencia del dataset</h2><p>Esta imagen pertenece al conjunto de validación. "
+        ref_txt = (f"<h2>Comparación con la referencia de un experto</h2><p>"
                    f"Coincidencia de la zona marcada con la referencia: {round(ref['dice'] * 100)} % "
                    f"(detalle técnico: Dice {ref['dice']}, IoU {ref['iou']}).</p>")
 

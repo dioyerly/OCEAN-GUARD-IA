@@ -362,7 +362,15 @@ def geocode(q: str):
 
 
 EXAMPLES_DIR = STATIC / "examples"
-SIN_LABEL = "Ejemplo sin derrame (mar en calma)"
+
+
+def _label(man: dict, sample_id: str) -> str | None:
+    """Etiqueta neutra visible: «Con derrame N» / «Sin derrame N» (el origen queda solo como dato interno del manifest)."""
+    for kind, text in (("con", "Con derrame"), ("sin", "Sin derrame")):
+        for k, e in enumerate(man[kind], 1):
+            if e["id"] == sample_id:
+                return f"{text} {k}"
+    return None
 
 
 def _manifest() -> dict:
@@ -375,14 +383,14 @@ def _manifest() -> dict:
 def examples():
     man = _manifest()
     groups = {
-        "con": [{"sample_id": e["id"], "scene": e["scene"], "fuente": e.get("fuente"), "zona": e.get("zona")} for e in man["con"]],
-        "sin": [{"sample_id": e["id"], "label": SIN_LABEL, "region": e["region"], "fuente": e.get("fuente")} for e in man["sin"]],
+        "con": [{"sample_id": e["id"], "etiqueta": f"Con derrame {k}"} for k, e in enumerate(man["con"], 1)],
+        "sin": [{"sample_id": e["id"], "etiqueta": f"Sin derrame {k}"} for k, e in enumerate(man["sin"], 1)],
     }
     try:
         samples = unet_data.read_split(config.DATASET_ROOT, "val")
         items = [{"sample_id": s.sample_id, "scene": scene_meta.for_sample(s.sample_id)} for s in samples]
     except Exception:
-        items = groups["con"]  # sin el dataset local, se usan los ejemplos incluidos
+        items = [{"sample_id": e["id"], "scene": e["scene"]} for e in man["con"]]  # sin el dataset local, se usan los ejemplos incluidos
     return {"split": "val", "count": len(items), "items": items, "groups": groups}
 
 
@@ -393,7 +401,7 @@ def analyze_example(sample_id: str):
     sin = next((e for e in man["sin"] if e["id"] == sample_id), None)
     if sin:
         rgb = np.asarray(Image.open(EXAMPLES_DIR / sin["file"]).convert("RGB"))
-        return _run_pipeline(rgb, source="ejemplo", filename=f"{SIN_LABEL} · {sin['region']}",
+        return _run_pipeline(rgb, source="ejemplo", filename=_label(man, sample_id),
                              bounds=None, location_kind="no indicada")
     con = next((e for e in man["con"] if e["id"] == sample_id), None)
     if con:
@@ -401,7 +409,7 @@ def analyze_example(sample_id: str):
         ref = unet_data.load_mask_binary(EXAMPLES_DIR / con["mask"]).astype(bool)
         bounds = con["bounds"]
         return _run_pipeline(
-            rgb, source="ejemplo", filename=f"{sample_id}.png", bounds=bounds,
+            rgb, source="ejemplo", filename=_label(man, sample_id), bounds=bounds,
             location_kind="georreferencia del archivo (GeoTIFF EPSG:4326)" if bounds else "no indicada",
             reference_mask=ref, extra_result={"scene": con["scene"]})
     try:
@@ -425,7 +433,7 @@ def analyze_example(sample_id: str):
         bounds, location_kind = None, "no indicada"
 
     return _run_pipeline(
-        rgb, source="ejemplo", filename=f"{sample_id}.png",
+        rgb, source="ejemplo", filename=_label(man, sample_id) or "Ejemplo",
         bounds=bounds, location_kind=location_kind, reference_mask=ref,
         extra_result={"scene": scene_meta.for_sample(sample_id)},
     )
