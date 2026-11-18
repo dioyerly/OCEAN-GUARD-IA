@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: ocean-guard-ia
+    runtime: python
+    region: oregon
+    plan: free
+    branch: entrega-final
+    rootDir: platform
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/status
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9

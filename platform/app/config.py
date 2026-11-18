@@ -15,7 +15,7 @@ UNET_DIR = ROOT_DIR / "unet_oilspill"
 # Modelo de referencia: época 4 (fase 1), Dice de validación 0,5841. No se reemplaza.
 CHECKPOINT = Path(os.environ.get(
     "OCEAN_CHECKPOINT",
-    UNET_DIR / "runs" / "unet_resnet34_demo_12ep" / "best.pt",
+    UNET_DIR / "runs" / "unet_resnet34_final" / "best.pt",
 ))
 
 # Dataset original: solo lectura. Se usa para los ejemplos de demostración (split val).
@@ -32,7 +32,7 @@ MAX_SIDE_PX = 4096
 # agudo. El conjunto test no se ha evaluado.
 DEFAULT_THRESHOLD = 0.95
 MIN_COMPONENT_PX = 100
-BN_RECAL = PLATFORM_DIR / "assets" / "bn_decoder_recal.pt"  # ver tools/recalibrate_bn.py
+BN_RECAL = UNET_DIR / "runs" / "unet_resnet34_final" / "bn_decoder_recal.pt"  # ver tools/recalibrate_bn.py
 DEFAULT_PIXEL_M = 10.0  # resolución supuesta si la imagen no trae georreferencia
 
 MSG_NOT_RADAR = ("Esta imagen no parece de radar satelital (Sentinel-1, en blanco y negro). "
