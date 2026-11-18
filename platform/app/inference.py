@@ -10,6 +10,9 @@ import threading
 import numpy as np
 import torch
 
+# En Render (512 MB) un solo hilo basta y evita reservar memoria extra por hilo.
+torch.set_num_threads(int(__import__("os").environ.get("OCEAN_TORCH_THREADS", "1")))
+
 from .config import BN_RECAL, CHECKPOINT, UNET_DIR
 
 if str(UNET_DIR) not in sys.path:
@@ -28,8 +31,9 @@ class Segmenter:
 
     def __init__(self, checkpoint=CHECKPOINT, device: str = "cpu", bn_recal=BN_RECAL):
         self.device = torch.device(device)
-        model, weights_report = unet_model.build_model()
-        ck = torch.load(checkpoint, map_location="cpu", weights_only=False)
+        model, weights_report = unet_model.build_model(load_pretrained=False)
+        # mmap: los pesos se leen del archivo sin duplicarlos en RAM al cargarlos en el modelo.
+        ck = torch.load(checkpoint, map_location="cpu", weights_only=False, mmap=True)
         model.load_state_dict(ck["model"], strict=True)
         recal = False
         if bn_recal is not None and bn_recal.exists():
@@ -40,20 +44,22 @@ class Segmenter:
                 raise RuntimeError(f"claves inesperadas en la recalibración de BN: {result.unexpected_keys}")
             recal = True
         model.to(self.device).eval()
+        meta = {"epoch": ck.get("global_epoch"), "phase": ck.get("phase"), "val_dice": float(ck.get("val_dice", 0.0))}
+        del ck  # libera el checkpoint completo; el modelo ya tiene sus pesos
         self._model = model
         self._lock = threading.Lock()
         self.info = {
             "checkpoint": str(checkpoint),
-            "epoch": ck.get("global_epoch"),
-            "phase": ck.get("phase"),
-            "val_dice": round(float(ck.get("val_dice", 0.0)), 4),
+            "epoch": meta["epoch"],
+            "phase": meta["phase"],
+            "val_dice": round(meta["val_dice"], 4),
             "device": str(self.device),
             "weights_sha256_ok": weights_report["sha256"] == unet_model.WEIGHTS_SHA256,
             "bn_decoder_recalibrated": recal,
             "architecture": "U-Net + ResNet34 (smp), salida binaria SLICK",
         }
 
-    @torch.no_grad()
+    @torch.inference_mode()
     def predict_prob(self, rgb: np.ndarray) -> np.ndarray:
         """rgb: HxWx3 uint8. Devuelve HxW float32 con la probabilidad de SLICK."""
         h, w = rgb.shape[:2]

@@ -26,7 +26,7 @@ def sha256_file(path: Path) -> str:
     return h.hexdigest()
 
 
-def build_model(weights_path: Path = WEIGHTS_PATH) -> tuple[torch.nn.Module, dict]:
+def build_model(weights_path: Path = WEIGHTS_PATH, load_pretrained: bool = True) -> tuple[torch.nn.Module, dict]:
     """Construye U-Net ResNet34 con 3 canales de entrada y 1 salida (logits SLICK).
 
     Lanza RuntimeError si el archivo de pesos no coincide con el SHA256 esperado o si
@@ -45,6 +45,8 @@ def build_model(weights_path: Path = WEIGHTS_PATH) -> tuple[torch.nn.Module, dic
         classes=1,
     )
 
+    if not load_pretrained:  # la plataforma carga luego un checkpoint completo: no hace falta cargar ImageNet dos veces
+        return model, {**report_base(weights_path, digest), "loaded_keys": 0, "pretrained_loaded": False}
     state = torch.load(weights_path, map_location="cpu", weights_only=True)
     # smp elimina avgpool y fc del encoder; esas claves fc.* son las unicas que se descartan.
     dropped = sorted(k for k in state if k.startswith("fc."))
@@ -75,6 +77,11 @@ def build_model(weights_path: Path = WEIGHTS_PATH) -> tuple[torch.nn.Module, dic
     # strict=False solo es seguro aqui porque las claves ya fueron verificadas arriba.
     model.encoder.load_state_dict(provided, strict=False)
     return model, report
+
+
+def report_base(weights_path: Path, digest: str) -> dict:
+    return {"weights_file": str(weights_path), "sha256": digest, "dropped_fc_keys": [], "expected_encoder_keys": None,
+            "tolerated_missing_num_batches_tracked": 0, "missing_keys": [], "unexpected_keys": []}
 
 
 def encoder_parameters(model: torch.nn.Module) -> list[torch.nn.Parameter]:
