@@ -20,7 +20,9 @@
     "time_utc": "12:00",
     "mode": "IW"
    },
-   "model_px": 94395
+   "model_px": 94395,
+   "fuente": "Oil Segmentation Dataset 800x600 (INPE), Sentinel-1",
+   "zona": "Golfo de México (región de Cantarell, según la documentación del dataset)"
   },
   {
    "id": "IMG_12_TILE_013",
@@ -42,7 +44,9 @@
     "time_utc": "12:00",
     "mode": "IW"
    },
-   "model_px": 53169
+   "model_px": 53169,
+   "fuente": "Oil Segmentation Dataset 800x600 (INPE), Sentinel-1",
+   "zona": "Golfo de México (región de Cantarell, según la documentación del dataset)"
   },
   {
    "id": "IMG_13_TILE_007",
@@ -64,7 +68,9 @@
     "time_utc": "12:00",
     "mode": "IW"
    },
-   "model_px": 21663
+   "model_px": 21663,
+   "fuente": "Oil Segmentation Dataset 800x600 (INPE), Sentinel-1",
+   "zona": "Golfo de México (región de Cantarell, según la documentación del dataset)"
   },
   {
    "id": "IMG_15_TILE_001",
@@ -86,7 +92,9 @@
     "time_utc": "12:00",
     "mode": "IW"
    },
-   "model_px": 283
+   "model_px": 283,
+   "fuente": "Oil Segmentation Dataset 800x600 (INPE), Sentinel-1",
+   "zona": "Golfo de México (región de Cantarell, según la documentación del dataset)"
   },
   {
    "id": "IMG_19_TILE_009",
@@ -108,7 +116,219 @@
     "time_utc": "00:15",
     "mode": "IW"
    },
-   "model_px": 27615
+   "model_px": 27615,
+   "fuente": "Oil Segmentation Dataset 800x600 (INPE), Sentinel-1",
+   "zona": "Golfo de México (región de Cantarell, según la documentación del dataset)"
+  },
+  {
+   "id": "IMG_02_TILE_003",
+   "file": "con_IMG_02_TILE_003.png",
+   "mask": "con_IMG_02_TILE_003_mask.png",
+   "bounds": [
+    [
+     19.49068819011318,
+     -92.96999990824756
+    ],
+    [
+     19.59848602420752,
+     -92.82626946278843
+    ]
+   ],
+   "scene": {
+    "satellite": "Sentinel-1A",
+    "date": "2020-02-10",
+    "time_utc": "00:15",
+    "mode": "IW"
+   },
+   "fuente": "Oil Segmentation Dataset 800x600 (INPE), Sentinel-1",
+   "zona": "Golfo de México (región de Cantarell, según la documentación del dataset)",
+   "conjunto": "prueba",
+   "area_mascara_px": 322
+  },
+  {
+   "id": "IMG_25_TILE_002",
+   "file": "con_IMG_25_TILE_002.png",
+   "mask": "con_IMG_25_TILE_002_mask.png",
+   "bounds": [
+    [
+     19.454266797335887,
+     -92.04645800681018
+    ],
+    [
+     19.56206463143023,
+     -91.90272756135106
+    ]
+   ],
+   "scene": {
+    "satellite": "Sentinel-1B",
+    "date": "2020-09-04",
+    "time_utc": "12:00",
+    "mode": "IW"
+   },
+   "fuente": "Oil Segmentation Dataset 800x600 (INPE), Sentinel-1",
+   "zona": "Golfo de México (región de Cantarell, según la documentación del dataset)",
+   "conjunto": "prueba",
+   "area_mascara_px": 875
+  },
+  {
+   "id": "IMG_01_TILE_001",
+   "file": "con_IMG_01_TILE_001.png",
+   "mask": "con_IMG_01_TILE_001_mask.png",
+   "bounds": [
+    [
+     19.324578061252364,
+     -92.10709711090368
+    ],
+    [
+     19.432375895346706,
+     -91.96336666544455
+    ]
+   ],
+   "scene": {
+    "satellite": "Sentinel-1A",
+    "date": "2020-01-17",
+    "time_utc": "00:15",
+    "mode": "IW"
+   },
+   "fuente": "Oil Segmentation Dataset 800x600 (INPE), Sentinel-1",
+   "zona": "Golfo de México (región de Cantarell, según la documentación del dataset)",
+   "conjunto": "prueba",
+   "area_mascara_px": 3574
+  },
+  {
+   "id": "IMG_23_TILE_003",
+   "file": "con_IMG_23_TILE_003.png",
+   "mask": "con_IMG_23_TILE_003_mask.png",
+   "bounds": [
+    [
+     19.407364829834602,
+     -92.45786360485896
+    ],
+    [
+     19.515162663928944,
+     -92.31413315939983
+    ]
+   ],
+   "scene": {
+    "satellite": "Sentinel-1B",
+    "date": "2020-08-23",
+    "time_utc": "12:00",
+    "mode": "IW"
+   },
+   "fuente": "Oil Segmentation Dataset 800x600 (INPE), Sentinel-1",
+   "zona": "Golfo de México (región de Cantarell, según la documentación del dataset)",
+   "conjunto": "prueba",
+   "area_mascara_px": 5584
+  },
+  {
+   "id": "IMG_23_TILE_008",
+   "file": "con_IMG_23_TILE_008.png",
+   "mask": "con_IMG_23_TILE_008_mask.png",
+   "bounds": [
+    [
+     19.252854600966046,
+     -93.0678196827761
+    ],
+    [
+     19.360652435060388,
+     -92.92408923731698
+    ]
+   ],
+   "scene": {
+    "satellite": "Sentinel-1B",
+    "date": "2020-08-23",
+    "time_utc": "12:00",
+    "mode": "IW"
+   },
+   "fuente": "Oil Segmentation Dataset 800x600 (INPE), Sentinel-1",
+   "zona": "Golfo de México (región de Cantarell, según la documentación del dataset)",
+   "conjunto": "prueba",
+   "area_mascara_px": 4199
+  },
+  {
+   "id": "IMG_02_TILE_008",
+   "file": "con_IMG_02_TILE_008.png",
+   "mask": "con_IMG_02_TILE_008_mask.png",
+   "bounds": [
+    [
+     19.22245124627509,
+     -92.28871759677132
+    ],
+    [
+     19.33024908036943,
+     -92.1449871513122
+    ]
+   ],
+   "scene": {
+    "satellite": "Sentinel-1A",
+    "date": "2020-02-10",
+    "time_utc": "00:15",
+    "mode": "IW"
+   },
+   "fuente": "Oil Segmentation Dataset 800x600 (INPE), Sentinel-1",
+   "zona": "Golfo de México (región de Cantarell, según la documentación del dataset)",
+   "conjunto": "prueba",
+   "area_mascara_px": 23047
+  },
+  {
+   "id": "SOS_22157",
+   "file": "con_SOS_22157.jpg",
+   "mask": "con_SOS_22157_mask.png",
+   "bounds": null,
+   "scene": null,
+   "fuente": "SOS (Sentinel-1)",
+   "conjunto": "prueba",
+   "area_mascara_px": 3668
+  },
+  {
+   "id": "SOS_21964",
+   "file": "con_SOS_21964.jpg",
+   "mask": "con_SOS_21964_mask.png",
+   "bounds": null,
+   "scene": null,
+   "fuente": "SOS (Sentinel-1)",
+   "conjunto": "prueba",
+   "area_mascara_px": 8940
+  },
+  {
+   "id": "SOS_30035",
+   "file": "con_SOS_30035.jpg",
+   "mask": "con_SOS_30035_mask.png",
+   "bounds": null,
+   "scene": null,
+   "fuente": "SOS (Sentinel-1)",
+   "conjunto": "prueba",
+   "area_mascara_px": 13762
+  },
+  {
+   "id": "SOS_30038",
+   "file": "con_SOS_30038.jpg",
+   "mask": "con_SOS_30038_mask.png",
+   "bounds": null,
+   "scene": null,
+   "fuente": "SOS (Sentinel-1)",
+   "conjunto": "prueba",
+   "area_mascara_px": 18518
+  },
+  {
+   "id": "SOS_22161",
+   "file": "con_SOS_22161.jpg",
+   "mask": "con_SOS_22161_mask.png",
+   "bounds": null,
+   "scene": null,
+   "fuente": "SOS (Sentinel-1)",
+   "conjunto": "prueba",
+   "area_mascara_px": 28544
+  },
+  {
+   "id": "SOS_22156",
+   "file": "con_SOS_22156.jpg",
+   "mask": "con_SOS_22156_mask.png",
+   "bounds": null,
+   "scene": null,
+   "fuente": "SOS (Sentinel-1)",
+   "conjunto": "prueba",
+   "area_mascara_px": 46126
   }
  ],
  "sin": [
@@ -116,19 +336,118 @@
    "id": "SIN_ADR",
    "file": "sin_ADR.jpg",
    "region": "ADR",
-   "model_px": 0
+   "model_px": 0,
+   "fuente": "CSIRO Sentinel-1 SAR dataset"
   },
   {
    "id": "SIN_JAV",
    "file": "sin_JAV.jpg",
    "region": "JAV",
-   "model_px": 0
+   "model_px": 0,
+   "fuente": "CSIRO Sentinel-1 SAR dataset"
   },
   {
    "id": "SIN_VEN",
    "file": "sin_VEN.jpg",
    "region": "VEN",
-   "model_px": 0
+   "model_px": 0,
+   "fuente": "CSIRO Sentinel-1 SAR dataset"
+  },
+  {
+   "id": "SIN_COR_1",
+   "file": "sin_COR_1.jpg",
+   "region": "COR",
+   "fuente": "CSIRO Sentinel-1 SAR dataset",
+   "origen_archivo": "0_0_0_img_9SSkCpDYLc8Julep_COR_cls_0.jpg",
+   "conjunto": "prueba"
+  },
+  {
+   "id": "SIN_COR_2",
+   "file": "sin_COR_2.jpg",
+   "region": "COR",
+   "fuente": "CSIRO Sentinel-1 SAR dataset",
+   "origen_archivo": "0_0_0_img_Z9ue41QTsmTR5v9d_COR_cls_0.jpg",
+   "conjunto": "prueba"
+  },
+  {
+   "id": "SIN_EGY_1",
+   "file": "sin_EGY_1.jpg",
+   "region": "EGY",
+   "fuente": "CSIRO Sentinel-1 SAR dataset",
+   "origen_archivo": "0_0_0_img_36J3JcEV2tEpgWSe_EGY_cls_0.jpg",
+   "conjunto": "prueba"
+  },
+  {
+   "id": "SIN_EGY_2",
+   "file": "sin_EGY_2.jpg",
+   "region": "EGY",
+   "fuente": "CSIRO Sentinel-1 SAR dataset",
+   "origen_archivo": "3_600_0_img_8bclfaFMUhF9GDUC_EGY_cls_0.jpg",
+   "conjunto": "prueba"
+  },
+  {
+   "id": "SIN_EGY_3",
+   "file": "sin_EGY_3.jpg",
+   "region": "EGY",
+   "fuente": "CSIRO Sentinel-1 SAR dataset",
+   "origen_archivo": "3_600_0_img_4A6lHHxQ6MJSUYUP_EGY_cls_0.jpg",
+   "conjunto": "prueba"
+  },
+  {
+   "id": "SIN_GIB_1",
+   "file": "sin_GIB_1.jpg",
+   "region": "GIB",
+   "fuente": "CSIRO Sentinel-1 SAR dataset",
+   "origen_archivo": "1117_2000_4200_img_ba3FWwM9M6My6yc2_GIB_cls_0.jpg",
+   "conjunto": "prueba"
+  },
+  {
+   "id": "SIN_GIB_2",
+   "file": "sin_GIB_2.jpg",
+   "region": "GIB",
+   "fuente": "CSIRO Sentinel-1 SAR dataset",
+   "origen_archivo": "1058_6800_4000_img_qwnS3FgzG5CooZ5b_GIB_cls_0.jpg",
+   "conjunto": "prueba"
+  },
+  {
+   "id": "SIN_GIB_3",
+   "file": "sin_GIB_3.jpg",
+   "region": "GIB",
+   "fuente": "CSIRO Sentinel-1 SAR dataset",
+   "origen_archivo": "1157_10000_4200_img_hqtRRun6tjg4UBGV_GIB_cls_0.jpg",
+   "conjunto": "prueba"
+  },
+  {
+   "id": "SIN_GIB_4",
+   "file": "sin_GIB_4.jpg",
+   "region": "GIB",
+   "fuente": "CSIRO Sentinel-1 SAR dataset",
+   "origen_archivo": "1161_10800_4200_img_n64FOsGglTAqEio6_GIB_cls_0.jpg",
+   "conjunto": "prueba"
+  },
+  {
+   "id": "SIN_NOR_1",
+   "file": "sin_NOR_1.jpg",
+   "region": "NOR",
+   "fuente": "CSIRO Sentinel-1 SAR dataset",
+   "origen_archivo": "8_0_400_img_kfKT711BySCf5CsE_NOR_cls_0.jpg",
+   "conjunto": "prueba"
+  },
+  {
+   "id": "SIN_NOR_2",
+   "file": "sin_NOR_2.jpg",
+   "region": "NOR",
+   "fuente": "CSIRO Sentinel-1 SAR dataset",
+   "origen_archivo": "0_0_0_img_psqOTPuwsSe53Rpf_NOR_cls_0.jpg",
+   "conjunto": "prueba"
+  },
+  {
+   "id": "SIN_NOR_3",
+   "file": "sin_NOR_3.jpg",
+   "region": "NOR",
+   "fuente": "CSIRO Sentinel-1 SAR dataset",
+   "origen_archivo": "13_200_600_img_MSB0wqoY8PVXx6y4_NOR_cls_0.jpg",
+   "conjunto": "prueba"
   }
  ]
 }

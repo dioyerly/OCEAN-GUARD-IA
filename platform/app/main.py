@@ -375,8 +375,8 @@ def _manifest() -> dict:
 def examples():
     man = _manifest()
     groups = {
-        "con": [{"sample_id": e["id"], "scene": e["scene"]} for e in man["con"]],
-        "sin": [{"sample_id": e["id"], "label": SIN_LABEL, "region": e["region"]} for e in man["sin"]],
+        "con": [{"sample_id": e["id"], "scene": e["scene"], "fuente": e.get("fuente"), "zona": e.get("zona")} for e in man["con"]],
+        "sin": [{"sample_id": e["id"], "label": SIN_LABEL, "region": e["region"], "fuente": e.get("fuente")} for e in man["sin"]],
     }
     try:
         samples = unet_data.read_split(config.DATASET_ROOT, "val")

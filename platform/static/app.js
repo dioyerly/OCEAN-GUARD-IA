@@ -852,7 +852,7 @@ async function loadExamples() {
     const g = (await api("/api/examples")).groups;
     const opt = (i, txt) => `<option value="${esc(i.sample_id)}">${esc(txt)}</option>`;
     sel.innerHTML = `<optgroup label="Con derrame">${g.con.map((i) => opt(i, i.sample_id + (i.scene && i.scene.date ? " · " + i.scene.date : ""))).join("")}</optgroup>` +
-      `<optgroup label="Sin derrame">${g.sin.map((i) => opt(i, `${i.label} · ${i.region}`)).join("")}</optgroup>`;
+      `<optgroup label="Sin derrame">${g.sin.map((i) => opt(i, `${i.label} · ${i.sample_id.replace("SIN_", "")}`)).join("")}</optgroup>`;
   } catch (_) { sel.innerHTML = ""; }
 }
 

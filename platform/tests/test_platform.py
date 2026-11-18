@@ -430,8 +430,8 @@ def test_api_response_includes_new_simple_fields():
 # ---------- ejemplos con y sin derrame (autosuficientes) y filtro gris-en-RGB ----------
 def test_examples_groups_and_static_files():
     g = client.get("/api/examples").json()["groups"]
-    assert 1 <= len(g["con"]) <= 5 and len(g["sin"]) == 3
-    assert len({e["region"] for e in g["sin"]}) == 3 and all(e["label"].startswith("Ejemplo sin derrame") for e in g["sin"])
+    assert len(g["con"]) >= 5 and len(g["sin"]) >= 3   # los ejemplos anteriores se conservan (y hay mas)
+    assert len({e["region"] for e in g["sin"]}) >= 3 and all(e["label"].startswith("Ejemplo sin derrame") for e in g["sin"])
     man = (config.PLATFORM_DIR / "static" / "examples")
     assert all((man / f).exists() for f in ("manifest.json", "sin_ADR.jpg", "sin_JAV.jpg", "sin_VEN.jpg"))
 
@@ -499,3 +499,35 @@ def test_api_confidence_card_for_example_with_and_without_spill():
     assert not any(w in cs["title"] + cs["text"] for w in ("Alta", "Media", "Baja"))
     rep_html = client.get(f"/api/analyses/{sin['id']}/report").text
     assert "Puntaje de confianza del modelo" in rep_html and f"{cs['percent']} %" in rep_html
+
+
+# ---------- ejemplos ampliados (solo del conjunto de prueba, livianos, con fuente) ----------
+def test_manifest_has_enough_light_examples_with_source():
+    import json as _j
+    d = config.PLATFORM_DIR / "static" / "examples"
+    man = _j.loads((d / "manifest.json").read_text(encoding="utf-8"))
+    nuevos_con = [e for e in man["con"] if e.get("conjunto") == "prueba"]
+    nuevos_sin = [e for e in man["sin"] if e.get("conjunto") == "prueba"]
+    assert len(nuevos_con) >= 10 and len(nuevos_sin) >= 10
+    assert len(man["con"]) >= 15 and len(man["sin"]) >= 13  # los ejemplos anteriores se conservan
+    assert sum(e["id"].startswith("SOS_") for e in nuevos_con) >= 3 and sum(e["id"].startswith("IMG_") for e in nuevos_con) >= 3
+    assert len({e["region"] for e in nuevos_sin}) >= 3
+    for e in man["con"] + man["sin"]:
+        assert e.get("fuente"), e["id"]
+        assert (d / e["file"]).exists() and (e["file"].endswith((".jpg", ".png")))
+        assert (d / e["file"]).stat().st_size < 600_000
+    for e in nuevos_con:
+        assert (d / e["mask"]).exists()
+        assert bool(e.get("zona")) == e["id"].startswith("IMG_")  # la zona solo donde el dataset la dice (originales); SOS: solo fuente
+    assert all("zona" not in e for e in man["sin"])             # CSIRO: solo fuente y codigo de region
+    assert sum(p.stat().st_size for p in d.iterdir()) < 8_000_000
+
+
+def test_every_example_analyzes_and_groups_expose_source():
+    g = client.get("/api/examples").json()["groups"]
+    assert len(g["con"]) >= 15 and len(g["sin"]) >= 13
+    assert all(i["fuente"] for i in g["con"] + g["sin"])
+    for i in g["con"] + g["sin"]:
+        r = client.post(f"/api/examples/{i['sample_id']}/analyze")
+        assert r.status_code == 200, (i["sample_id"], r.text)
+        assert r.json()["source"] == "ejemplo"
