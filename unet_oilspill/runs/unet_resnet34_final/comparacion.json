@@ -1,0 +1,98 @@
+{
+ "regla": {
+  "umbral": 0.95,
+  "zona_minima_px": 100
+ },
+ "prueba": {
+  "con_derrame": 176,
+  "originales": 26,
+  "sos": 150,
+  "sin_derrame": 228
+ },
+ "aviso": "el modelo ACTUAL se entreno con las 108 teselas originales del split train; las originales de esta prueba que estan en ese split le dan ventaja",
+ "originales_en_prueba_vistas_por_el_actual": 25,
+ "modelos": {
+  "actual": {
+   "con_derrame": {
+    "imagenes": 176,
+    "dice": 0.1704766706850179,
+    "precision": 0.7644013260530421,
+    "recall": 0.09593617063586149,
+    "imagenes_marcadas": 102,
+    "deteccion": 0.5795454545454546
+   },
+   "sin_derrame": {
+    "imagenes": 228,
+    "imagenes_marcadas": 53,
+    "falsa_alarma": 0.2324561403508772
+   },
+   "conjunto_completo": {
+    "imagenes": 404,
+    "dice": 0.14881219737257645,
+    "precision": 0.3315472515203546,
+    "recall": 0.09593617063586149,
+    "imagenes_marcadas": 155,
+    "tasa_marcadas": 0.38366336633663367
+   },
+   "con_derrame_por_fuente": {
+    "originales": {
+     "imagenes": 26,
+     "dice": 0.614542475270291,
+     "precision": 0.5965078030536137,
+     "recall": 0.6337016574585635,
+     "imagenes_marcadas": 22,
+     "tasa_marcadas": 0.8461538461538461
+    },
+    "sos": {
+     "imagenes": 150,
+     "dice": 0.10891200651684364,
+     "precision": 0.9802280818063812,
+     "recall": 0.05765922828496665,
+     "imagenes_marcadas": 80,
+     "tasa_marcadas": 0.5333333333333333
+    }
+   }
+  },
+  "nuevo_final": {
+   "con_derrame": {
+    "imagenes": 176,
+    "dice": 0.6344681074827786,
+    "precision": 0.6733519700804654,
+    "recall": 0.5998299025763947,
+    "imagenes_marcadas": 169,
+    "deteccion": 0.9602272727272727
+   },
+   "sin_derrame": {
+    "imagenes": 228,
+    "imagenes_marcadas": 27,
+    "falsa_alarma": 0.11842105263157894
+   },
+   "conjunto_completo": {
+    "imagenes": 404,
+    "dice": 0.602850504114426,
+    "precision": 0.6059016816962143,
+    "recall": 0.5998299025763947,
+    "imagenes_marcadas": 196,
+    "tasa_marcadas": 0.48514851485148514
+   },
+   "con_derrame_por_fuente": {
+    "originales": {
+     "imagenes": 26,
+     "dice": 0.2818955997111052,
+     "precision": 0.1748527849857852,
+     "recall": 0.7268876611418048,
+     "imagenes_marcadas": 26,
+     "tasa_marcadas": 1.0
+    },
+    "sos": {
+     "imagenes": 150,
+     "dice": 0.7125109230625125,
+     "precision": 0.8974124374837907,
+     "recall": 0.590786216027121,
+     "imagenes_marcadas": 143,
+     "tasa_marcadas": 0.9533333333333334
+    }
+   }
+  }
+ }
+}
