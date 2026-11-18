@@ -14,3 +14,7 @@ oilspill-dataset-original/RASTER/
 oilspill-detection-dataset-main/IMAGES/
 oilspill-detection-dataset-main/RASTER/
 oilspill-dataset-original/
+
+# Datos adicionales (no se redistribuyen)
+datasets_extra/
+S1SAR_UnBalanced_*.zip

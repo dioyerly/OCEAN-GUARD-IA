@@ -96,3 +96,16 @@ Los ejemplos usan esas coordenadas y el satélite/fecha del CSV del dataset (Sen
 ```
 
 Usan un directorio temporal y solo leen el split de validación. Algunas pruebas consultan Open-Meteo y se omiten sin conexión.
+
+## Datos adicionales
+
+Para medir (y reducir) las falsas alarmas se usó el dataset **CSIRO Sentinel-1 SAR image dataset of oil- and non-oil
+features for machine learning** (recortes de 400×400, con y sin petróleo; sin máscaras, solo «hay / no hay»):
+
+> Blondeau-Patissier, D., Schroeder, T., Diakogiannis, F. y Li, Z. *CSIRO Sentinel-1 SAR image dataset of oil- and
+> non-oil features for machine learning*. CSIRO Data Collection. DOI: [10.25919/4v55-dn16](https://doi.org/10.25919/4v55-dn16).
+> Licencia CC BY-SA 4.0.
+
+**Las imágenes no se redistribuyen en este repositorio** (`datasets_extra/` está en `.gitignore`); hay que descargarlas
+del origen. Resultados y advertencias: `docs/REPORTE_FALSAS_ALARMAS.md`. Elegir modelo: variable `OCEAN_MODEL`
+(`anterior`, predeterminado, o `negativos`).

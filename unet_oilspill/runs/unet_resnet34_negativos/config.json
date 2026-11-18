@@ -1,0 +1,19 @@
+{
+  "args": {
+    "base": "runs\\unet_resnet34_demo_12ep\\best.pt",
+    "out": "runs\\unet_resnet34_negativos",
+    "epochs": "3",
+    "n_neg": "1500",
+    "val_neg_limit": "100",
+    "base_dice": "0.7890987",
+    "seed": "42",
+    "freeze_encoder": "True",
+    "time_cap_min": "15.0"
+  },
+  "batch": "2 originales + 2 negativos",
+  "lr_encoder": 1e-05,
+  "lr_decoder": 0.0001,
+  "gbr_max_frac_of_negatives": 0.5,
+  "val_neg_n": 100,
+  "train_neg_pool": 2625
+}

@@ -13,10 +13,18 @@ ROOT_DIR = PLATFORM_DIR.parent
 UNET_DIR = ROOT_DIR / "unet_oilspill"
 
 # Modelo de referencia: época 4 (fase 1), Dice de validación 0,5841. No se reemplaza.
-CHECKPOINT = Path(os.environ.get(
-    "OCEAN_CHECKPOINT",
-    UNET_DIR / "runs" / "unet_resnet34_demo_12ep" / "best.pt",
-))
+# Modelos disponibles. El PREDETERMINADO sigue siendo el anterior ("anterior"); el nuevo
+# ("negativos", reentrenado con negativos CSIRO) se activa con OCEAN_MODEL=negativos.
+MODELS = {
+    "anterior": (UNET_DIR / "runs" / "unet_resnet34_demo_12ep" / "best.pt",
+                 PLATFORM_DIR / "assets" / "bn_decoder_recal.pt"),
+    "negativos": (UNET_DIR / "runs" / "unet_resnet34_negativos" / "best.pt",
+                  UNET_DIR / "runs" / "unet_resnet34_negativos" / "bn_decoder_recal.pt"),
+}
+MODEL_NAME = os.environ.get("OCEAN_MODEL", "anterior")
+if MODEL_NAME not in MODELS:
+    raise ValueError(f"OCEAN_MODEL desconocido: {MODEL_NAME} (opciones: {sorted(MODELS)})")
+CHECKPOINT = Path(os.environ.get("OCEAN_CHECKPOINT", MODELS[MODEL_NAME][0]))
 
 # Dataset original: solo lectura. Se usa para los ejemplos de demostración (split val).
 DATASET_ROOT = Path(os.environ.get("OCEAN_DATASET", ROOT_DIR / "oilspill-dataset-original"))
@@ -32,7 +40,7 @@ MAX_SIDE_PX = 4096
 # agudo. El conjunto test no se ha evaluado.
 DEFAULT_THRESHOLD = 0.95
 MIN_COMPONENT_PX = 100
-BN_RECAL = PLATFORM_DIR / "assets" / "bn_decoder_recal.pt"  # ver tools/recalibrate_bn.py
+BN_RECAL = MODELS[MODEL_NAME][1]  # ver tools/recalibrate_bn.py (modelo anterior: assets/bn_decoder_recal.pt)
 DEFAULT_PIXEL_M = 10.0  # resolución supuesta si la imagen no trae georreferencia
 
 ALLOWED_EXTENSIONS = {".png", ".jpg", ".jpeg", ".tif", ".tiff"}
